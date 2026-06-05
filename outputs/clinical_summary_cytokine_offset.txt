@@ -1,0 +1,48 @@
+# Clinical Summary — Efficacy by Cytokine Storm Offset
+==================================================================== 
+
+Date: 2026-05-29
+Patients: 60 per arm
+Solver: Pure R RK4, dt = 0.25 days
+
+## Arm-Level Cytokine Summary
+
+Arm            C_pro_pk C_anti_pk   Offset     P_peak    Mort_prob     Dialysis
+────   ─────── ──────── ────── ────── ────────── ────────
+Placebo           0.371   0.0031     3.5d      298.4         9.6%        64.4%
+Ribavirin         0.251   0.0008     0.2d      106.7         2.7%        15.0%
+Favipiravir       0.368   0.0032     3.2d      161.6         7.8%        49.8%
+Combo             0.251   0.0008     0.2d       83.2         2.2%        12.7%
+
+## Offset Distribution by Arm
+
+* Placebo     : median=  3.5d  IQR=[  3.2,   3.5]  range=[  3.0,   3.8]
+* Ribavirin   : median=  0.2d  IQR=[  0.2,   0.5]  range=[  0.2,   7.2]
+* Favipiravir : median=  3.2d  IQR=[  3.2,   3.5]  range=[  2.8,   3.8]
+* Combo       : median=  0.2d  IQR=[  0.2,   0.5]  range=[  0.2,  11.2]
+
+## Efficacy by Offset Stratum (Pooled Arms)
+
+* Short (<1d)          (N=96): Mort=  2.7%, Dialysis= 15.4%, P_peak= 103.7, K_peak= 5.45
+* Intermediate (1-3d)  (N=24): Mort=  7.4%, Dialysis= 48.4%, P_peak= 151.3, K_peak=28.12
+* Long (>3d)           (N=120): Mort=  8.4%, Dialysis= 55.0%, P_peak= 201.4, K_peak=36.71
+
+## Mortality by Arm × Offset Stratum
+
+Stratum                 Placebo        RBV        FAV      Combo
+Short (<1d)                 NA%       2.9%        NA%       2.4%
+Intermediate (1-3d)        9.7%       2.4%       7.6%       1.5%
+Long (>3d)                 9.6%       2.4%       7.8%       1.5%
+
+## Treatment Effect on Offset vs Placebo
+
+* Ribavirin   : delta offset = -3.2 days (-93% vs placebo)
+* Favipiravir : delta offset = -0.2 days (-7% vs placebo)
+* Combo       : delta offset = -3.2 days (-93% vs placebo)
+
+## Correlation: Offset vs Mortality (Spearman)
+
+* Placebo     : rho = +0.000
+* Ribavirin   : rho = -0.327
+* Favipiravir : rho = +0.107
+* Combo       : rho = -0.601

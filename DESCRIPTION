@@ -1,0 +1,25 @@
+Package: HantavirusQSP
+Title: Quantitative Systems Pharmacology Model for Hantavirus Treatment
+Version: 0.1.0
+Authors@R:
+    person("QSP", "Modeler", , "modeler@example.com", role = c("aut", "cre"))
+Description: A mechanistic QSP model of Hantavirus infection dynamics,
+    innate immune response, endothelial permeability, organ-specific injury
+    (renal and pulmonary), and antiviral pharmacokinetics/pharmacodynamics
+    for Ribavirin and Favipiravir. Includes virtual population generation
+    (N=1000), 4-arm virtual trial simulation, and treatment-window analysis.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
+Depends:
+    R (>= 4.2.0)
+Imports:
+    deSolve,
+    ggplot2,
+    dplyr,
+    tidyr,
+    gridExtra
+Suggests:
+    testthat (>= 3.0.0)
+Config/testthat/edition: 3

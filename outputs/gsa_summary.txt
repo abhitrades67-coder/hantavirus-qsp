@@ -1,0 +1,36 @@
+GLOBAL SENSITIVITY ANALYSIS (LHS + PRCC)
+Date: 2026-06-04 | N=1000 | parameters=32
+
+Day-1 combination RRR: median=77.5%  IQR=[45.1, 97.2]%  (5th pct=21.2%)
+Placebo mortality: median=9.2%  IQR=[6.3, 10.8]%
+
+--- Top PRCC drivers: Placebo mortality ---
+  p              PRCC=+0.788 *
+  k_PV           PRCC=+0.593 *
+  c              PRCC=-0.568 *
+  k_KP           PRCC=+0.529 *
+  beta           PRCC=+0.435 *
+  d_P            PRCC=-0.411 *
+  d_K            PRCC=-0.403 *
+  delta_natural  PRCC=-0.176 *
+
+--- Top PRCC drivers: Day-1 combination RRR ---
+  p              PRCC=-0.930 *
+  beta           PRCC=-0.926 *
+  c              PRCC=+0.688 *
+  k_PV           PRCC=-0.411 *
+  k_KP           PRCC=-0.320 *
+  d_K            PRCC=+0.104 *
+  EC50_FAV       PRCC=-0.103 *
+  Emax_RBV       PRCC=+0.087 *
+
+--- Top PRCC drivers: Peak viral load (placebo) ---
+  p              PRCC=+0.941 *
+  c              PRCC=-0.811 *
+  beta           PRCC=+0.382 *
+  delta_natural  PRCC=-0.164 *
+  delta_CD8      PRCC=-0.059 
+  I_gate         PRCC=+0.058 
+  Emax_RBV       PRCC=-0.051 
+  k_FI           PRCC=+0.049 
+

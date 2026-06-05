@@ -1,0 +1,26 @@
+# --- Logs & scratch ---
+*.log
+outputs/*.log
+_scan.py
+_*.py
+check_*.R
+Rplots.pdf
+
+# --- Editor / tooling caches ---
+.qwen/
+.antigravitycli/
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+
+# --- Internal development notes (not part of the public release) ---
+memory/
+
+# --- Manuscript (paper is archived separately, not part of the code release) ---
+manuscript/
+*.docx
+
+# --- OS cruft ---
+.DS_Store
+Thumbs.db

@@ -1,0 +1,28 @@
+cff-version: 1.2.0
+message: "If you use this model, please cite both the software archive and the associated paper."
+title: "Hantavirus QSP Model: Ribavirin, Favipiravir, and Combination Antiviral Therapy"
+type: software
+authors:
+  - given-names: Abhishek
+    family-names: Anil
+    affiliation: "Department of Pharmacology, AIIMS Bhubaneswar, India"
+    orcid: "https://orcid.org/0000-0001-7289-2325"
+  - given-names: Sayantan Shankar
+    family-names: Roy
+    affiliation: "Department of Pharmacology, AIIMS Bhubaneswar, India"
+    orcid: "https://orcid.org/0009-0005-2811-1997"
+  - given-names: Archana
+    family-names: "A.S"
+    affiliation: "Department of Pharmacology, AIIMS Bhubaneswar, India"
+    orcid: "https://orcid.org/0009-0007-5749-5939"
+  - given-names: Debasish
+    family-names: Hota
+    affiliation: "Department of Pharmacology, AIIMS Bhubaneswar, India"
+    orcid: "https://orcid.org/0000-0002-7339-1773"
+  - given-names: Anand
+    family-names: Srinivasan
+    affiliation: "Department of Pharmacology, AIIMS Bhubaneswar, India"
+    orcid: "https://orcid.org/0000-0002-0663-0922"
+version: 1.0.0
+date-released: "2026-06-05"
+license: MIT

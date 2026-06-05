@@ -1,0 +1,115 @@
+============================================================
+  LOCAL SENSITIVITY ANALYSIS — HANTAVIRUS QSP MODEL
+============================================================
+Date: 2026-06-03
+Perturbations: ±10, 25, 50%
+Arms: placebo, ribavirin
+Syndrome: HFRS
+Simulation horizon: 0–21 days
+
+------------------------------------------------------------
+  RANKING by |S| for V_peak (±50% perturbation)
+------------------------------------------------------------
+Parameter             Arm           |S_V_peak|
+---------             ---           ----------
+c                     ribavirin     1.5664
+p                     placebo       1.4879
+p                     ribavirin     1.4879
+c                     placebo       1.2491
+beta                  placebo       1.0081
+beta                  ribavirin     1.0081
+delta_natural         placebo       0.0548
+delta_natural         ribavirin     0.0546
+k_CD8_I               placebo       0.0242
+k_CD8_I               ribavirin     0.0242
+delta_CD8             placebo       0.0104
+delta_CD8             ribavirin     0.0104
+k_neut_IgG            placebo       0.0003
+k_neut_IgG            ribavirin     0.0003
+delta_NK              placebo       0.0000
+delta_NK              ribavirin     0.0000
+d_C                   placebo       0.0000
+d_C                   ribavirin     0.0000
+k_LP                  placebo       0.0000
+k_LP                  ribavirin     0.0000
+d_L                   placebo       0.0000
+d_L                   ribavirin     0.0000
+K_CC                  placebo       0.0000
+K_CC                  ribavirin     0.0000
+k_CC                  placebo       0.0000
+k_CC                  ribavirin     0.0000
+CL_RBV                placebo       0.0000
+CL_RBV                ribavirin     0.0000
+EC50_RBV              placebo       0.0000
+EC50_RBV              ribavirin     0.0000
+Emax_RBV              placebo       0.0000
+Emax_RBV              ribavirin     0.0000
+d_K                   placebo       0.0000
+d_K                   ribavirin     0.0000
+k_KP                  placebo       0.0000
+k_KP                  ribavirin     0.0000
+
+------------------------------------------------------------
+  RANKING by |S| for mortality_prob (±50% perturbation)
+------------------------------------------------------------
+Parameter             Arm           |S_mortality|
+---------             ---           -------------
+p                     ribavirin     1.5798
+beta                  ribavirin     1.3626
+c                     ribavirin     1.3506
+p                     placebo       1.1147
+beta                  placebo       1.0004
+k_KP                  ribavirin     0.5251
+d_K                   ribavirin     0.3297
+c                     placebo       0.3166
+k_KP                  placebo       0.2999
+d_K                   placebo       0.2563
+Emax_RBV              ribavirin     0.1627
+k_CD8_I               ribavirin     0.0761
+d_L                   ribavirin     0.0657
+delta_natural         ribavirin     0.0547
+delta_natural         placebo       0.0454
+d_L                   placebo       0.0389
+k_CD8_I               placebo       0.0378
+k_LP                  ribavirin     0.0318
+k_LP                  placebo       0.0217
+delta_CD8             placebo       0.0163
+delta_CD8             ribavirin     0.0122
+EC50_RBV              ribavirin     0.0018
+d_C                   ribavirin     0.0013
+d_C                   placebo       0.0012
+CL_RBV                ribavirin     0.0010
+k_neut_IgG            ribavirin     0.0002
+k_neut_IgG            placebo       0.0002
+delta_NK              ribavirin     0.0000
+delta_NK              placebo       0.0000
+K_CC                  placebo       0.0000
+K_CC                  ribavirin     0.0000
+k_CC                  placebo       0.0000
+k_CC                  ribavirin     0.0000
+CL_RBV                placebo       0.0000
+EC50_RBV              placebo       0.0000
+Emax_RBV              placebo       0.0000
+
+------------------------------------------------------------
+  INTERPRETATION
+------------------------------------------------------------
+  |S| > 1.0  : highly sensitive (output changes more than parameter)
+  0.1 < |S| < 1.0 : moderately sensitive
+  |S| < 0.1  : weakly sensitive
+
+  Top 5 drivers of V_peak (placebo):
+    1. p  (|S| = 1.488)
+    2. c  (|S| = 1.249)
+    3. beta  (|S| = 1.008)
+    4. delta_natural  (|S| = 0.055)
+    5. k_CD8_I  (|S| = 0.024)
+
+  Top 5 drivers of mortality (placebo):
+    1. p  (|S| = 1.115)
+    2. beta  (|S| = 1.000)
+    3. c  (|S| = 0.317)
+    4. k_KP  (|S| = 0.300)
+    5. d_K  (|S| = 0.256)
+
+============================================================
