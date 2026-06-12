@@ -19,7 +19,7 @@ treatment with **Ribavirin** and **Favipiravir**.
 │  INNATE IMMUNE (6-var)   │        │  ENDOTHELIAL + PLT       │
 │  NSs → IFN antagonist    │        │  dP/dt = k_PV·V          │
 │  F_I → Type I IFN (α/β)  │        │        + k_PC·C_pro/Cref │
-│  NK  → NK cells          │        │  dPLT/dt = prod - cons   │
+│  NK  → NK cells          │        │  dPLT = prod-loss-cons   │
 │  F_II → Type II IFN (γ)  │        └──────────┬───────────────┘
 │  C_pro → Pro-infl cytokines │                 │
 │         + auto-amplification│                 ▼
@@ -56,12 +56,12 @@ treatment with **Ribavirin** and **Favipiravir**.
 | PLT | Platelet count | /μL |
 | K | Renal injury index | 0–1 |
 | L | Lung injury index | 0–1 |
-| C_RBV | Ribavirin plasma concentration | μg/mL |
 | CD8_N | CD8+ naive/primed T cells | AU |
 | CD8_E | CD8+ effector T cells | AU |
 | CD4 | CD4+ helper T cells | AU |
 | IgM | IgM antibodies | AU |
 | IgG | Neutralizing IgG antibodies | AU |
+| C_RBV | Ribavirin plasma concentration | μg/mL |
 | C_FAV_gut | Favipiravir gut compartment | mg |
 | C_FAV | Favipiravir plasma concentration | μg/mL |
 | C_FAVI_RTP | Favipiravir active metabolite (RTP) | μg/mL |
@@ -87,7 +87,7 @@ Key features:
 
 ### Antiviral PD
 
-- **Ribavirin**: Emax model with EC50 = 5 μg/mL, γ = 1.5
+- **Ribavirin**: Emax model with Emax = 0.70, EC50 = 8 μg/mL, γ = 1.5
 - **Favipiravir**: Emax model on RTP metabolite, EC50 = 0.5 μg/mL, γ = 1.2
 - **Combination**: Bliss independence + synergy term (ψ = 0.1)
 
@@ -106,11 +106,16 @@ Hantavirus_QSP/
 │   └── parameters.R          # All parameters with sources & confidence
 ├── R/
 │   ├── pk_models.R           # Ribavirin & Favipiravir PK/dosing
-│   ├── pd_models.R           # PD, combination, endpoint functions
+│   ├── pd_models.R           # PD, combination, clinical-endpoint functions
 │   ├── virtual_population.R  # Virtual patient generation (N=1000)
 │   ├── simulate_trial.R      # Virtual trial simulation engine
 │   ├── analysis.R            # Plotting & summary functions
-│   └── run_pipeline.R        # Main pipeline (runs everything)
+│   ├── run_pipeline.R        # Core pipeline: trial + main figures/tables
+│   ├── sensitivity_analysis.R / uncertainty_quantification.R / gsa_prcc.R
+│   ├── ablation_analysis.R / preexposure_analysis.R / optimal_duration.R / vpc_analysis.R
+│   ├── plot_*.R              # Organ/adaptive heatmaps & decluttered trajectories
+│   └── regen_all_aux.R / regen_cached_figs.R   # Re-run auxiliaries / cached figures
+├── tests/testthat/           # Unit tests (parameter & model invariants)
 ├── outputs/                  # Generated figures and tables
 ├── DESCRIPTION
 └── README.md
@@ -121,7 +126,8 @@ Hantavirus_QSP/
 ### Required R packages
 
 ```r
-install.packages(c("deSolve", "ggplot2", "dplyr", "tidyr", "gridExtra"))
+install.packages(c("deSolve", "ggplot2", "dplyr", "tidyr", "gridExtra",
+                   "foreach", "doParallel"))
 ```
 
 ### R version
@@ -133,17 +139,31 @@ Requires R >= 4.2.0. Tested on R 4.3+.
 ### Run the full pipeline
 
 ```bash
-cd "G:\My Drive\Hantavirus_QSP"
+cd /path/to/Hantavirus_QSP
 Rscript R/run_pipeline.R
 ```
 
 Or from within R:
 
 ```r
-setwd("G:\\My Drive\\Hantavirus_QSP")
+setwd("path/to/Hantavirus_QSP")   # set to your local checkout
 source("R/run_pipeline.R")
 main()
 ```
+
+`run_pipeline.R` runs the core virtual trial and produces the main figures and
+tables. The additional analyses (local/global sensitivity, uncertainty
+quantification, mechanism ablation, pre-exposure prophylaxis, optimal-duration,
+and VPC) live in separate scripts; regenerate them with:
+
+```bash
+Rscript R/regen_all_aux.R        # re-runs the auxiliary analyses
+Rscript R/regen_cached_figs.R    # regenerates the cached-data figures
+```
+
+> Note: `R/sensitivity_analysis.R` and `R/uncertainty_quantification.R` must be
+> run as standalone `Rscript` invocations (they fail if sourced inside another
+> script's environment).
 
 ### Individual components
 
@@ -235,15 +255,28 @@ Key references:
    module rates) are assumed due to limited quantitative clinical data in Hantavirus.
 2. **Composite cytokines**: C_pro is a composite variable, not individual cytokines
    (IL-6, TNF-α, etc.).
-3. **Simplified adaptive immunity**: NK cells are modeled as a single activation variable;
-   CD8+ T cells and antibody responses are not included.
+3. **Reduced immune representation**: Adaptive immunity (CD4⁺/CD8⁺ T cells, IgM, IgG) is
+   included but simplified — CD8⁺ cytotoxicity uses a two-pool maturation chain rather than
+   full clonal/repertoire dynamics, antibodies are lumped into IgM and IgG, and NK cells
+   are a single activation variable.
 4. **Single-strain model**: Does not distinguish between Hantaan, Dobrava,
    Puumala, Sin Nombre, Andes, etc.
 5. **Deterministic ODEs**: Stochastic effects at low viral loads are not captured.
+6. **Peak viral load magnitude**: Simulated peak viremia (~10⁷ copies/mL) runs higher than
+   typical clinical reports (~10⁴–10⁶), reflecting NSs-mediated near-complete Type I IFN
+   suppression. Clinical endpoints derive from downstream injury and cytokine states rather
+   than absolute viral titre, so the absolute value of V should not be over-interpreted.
 
 ## Version History
 
-- **v2.0** (2026-05-11): Expanded immune module (23 compartments):
+- **v2.1** (2026-06): Adaptive immunity, calibration, and public release (software v1.0.0):
+  - Added CD4⁺/CD8⁺ T cells (two-pool maturation chain) and IgM/IgG humoral response,
+    bringing the model to its current 23 compartments
+  - 60-day viral clearance with logistic target-cell regeneration
+  - Platelet-baseline recalibration; dialysis/ECMO thresholds decoupled from mortality
+  - Calibrated to Huggins JID 1991 (~9.6% placebo mortality); archived at Zenodo
+    (DOI 10.5281/zenodo.20558774)
+- **v2.0** (2026-05-11): Expanded 6-variable innate immune module:
   - Added NSs protein (IFN antagonist), Type I/II IFN split, NK cells
   - Cytokine auto-amplification (Hill-2) and IL-10 anti-inflammatory resolution
   - IFN feedback on viral production; non-cytopathic infected cell clearance

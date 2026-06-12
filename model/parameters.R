@@ -17,7 +17,7 @@ get_parameters <- function() {
   pars$T_0       <- 1e6          # cells            # Initial susceptible target cells
   pars$I_0       <- 0            # cells            # Initial infected cells
   # V_0 increased from 100 to 1000 (2026-05-21): enables infection establishment
-  # at reduced beta (4.6e-8 vs 1e-7). With V_0=100, beta must be ≥1e-7 to
+  # even at lower beta values. With V_0=100, beta must be ≥1e-7 to
   # overcome viral clearance before I builds up. V_0=1000 lowers the critical
   # I threshold proportionally and is clinically plausible (aerosolized rodent
   # excreta can deliver 10³-10⁴ virions; 1000 copies is ~0.003% of peak V).
@@ -31,9 +31,10 @@ get_parameters <- function() {
   pars$p         <- 100          # copies/cell/day  # Viral production rate
   pars$c         <- 3            # /day             # Viral clearance rate
   pars$k_T_reg   <- 0.30         # /day             # Target cell regen rate (logistic, fast recovery)
-  # Shortened from 10 to 5 days: with beta=4.6e-8 and V_0=1000, viral peak
-  # occurs ~day 7.5 post-infection (day +2.5 post-symptom-onset), within
-  # the treatment window (days 1-7).
+  # 5-day infection-to-symptom burn-in: with the current beta=1e-7 and V_0=1000,
+  # the viral peak occurs a few days after symptom onset, so the treatment
+  # window (days 1-7) brackets peak viremia. (An earlier note here referenced a
+  # superseded beta=4.6e-8 / "~day 7.5" calibration.)
   pars$symptom_onset_day <- 5    # days             # Infection-to-symptom-onset burn-in
 
   # ===========================================================================
@@ -299,8 +300,8 @@ build_parameter_table <- function(pars = get_parameters()) {
     description="Initial infected cells", source="Assumed", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="V_0", value=1000, units="copies/mL",
     description="Initial viral inoculum (increased for establishment)", source="Estimated from clinical viremia", confidence="medium"))
-  tbl <- rbind(tbl, data.frame(parameter="beta", value=4.6e-8, units="mL/copy/day",
-    description="Infection rate constant (recalibrated for peak ~day 7.5)", source="Calibrated to clinical viremia timing", confidence="medium"))
+  tbl <- rbind(tbl, data.frame(parameter="beta", value=1.0e-7, units="mL/copy/day",
+    description="Infection rate constant (calibrated for R0=3.33, ~9.6% placebo mortality)", source="Calibrated to Huggins JID 1991 placebo mortality", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="p", value=100, units="copies/cell/day",
     description="Viral production rate", source="Fitted to peak viremia", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="c", value=3, units="/day",
@@ -569,8 +570,11 @@ build_parameter_table <- function(pars = get_parameters()) {
   tbl <- rbind(tbl, data.frame(parameter="C_auc50", value=1500, units="day*AU",
     description="C_pro AUC for 50% cytokine risk", source="Assumed", confidence="low"))
 
-  # Keep exported values synchronized with get_parameters(); the table builder
-  # carries metadata, while get_parameters() is the single source for values.
+  # get_parameters() is the SINGLE SOURCE OF TRUTH for parameter values. The
+  # value= literals in the rows above are legacy placeholders only — they are
+  # NOT authoritative. We discard them here and re-populate every value directly
+  # from get_parameters(), so the exported table can never drift from the model.
+  tbl$value <- NA_real_
   value_rows <- tbl$parameter %in% names(pars)
   tbl$value[value_rows] <- vapply(
     tbl$parameter[value_rows],

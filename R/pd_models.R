@@ -14,7 +14,7 @@ NULL
 #' @param gamma Hill coefficient
 #' @return Effect fraction (0 to Emax)
 #' @export
-ribavirin_effect <- function(C_RBV, Emax = 0.95, EC50 = 5, gamma = 1.5) {
+ribavirin_effect <- function(C_RBV, Emax = 0.70, EC50 = 8, gamma = 1.5) {
   (Emax * C_RBV^gamma) / (EC50^gamma + C_RBV^gamma)
 }
 

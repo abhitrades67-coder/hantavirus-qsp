@@ -16,6 +16,8 @@ Rplots.pdf
 
 # --- Internal development notes (not part of the public release) ---
 memory/
+# Scratch / calibration / diagnostic scripts kept locally but not released
+dev/
 
 # --- Manuscript (paper is archived separately, not part of the code release) ---
 manuscript/

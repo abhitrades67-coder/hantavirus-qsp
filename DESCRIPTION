@@ -1,8 +1,18 @@
 Package: HantavirusQSP
 Title: Quantitative Systems Pharmacology Model for Hantavirus Treatment
-Version: 0.1.0
-Authors@R:
-    person("QSP", "Modeler", , "modeler@example.com", role = c("aut", "cre"))
+Version: 1.0.0
+Authors@R: c(
+    person("Abhishek", "Anil", email = "drabhishekanil@gmail.com",
+           role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0001-7289-2325")),
+    person("Sayantan Shankar", "Roy", role = "aut",
+           comment = c(ORCID = "0009-0005-2811-1997")),
+    person("Archana", "A.S", role = "aut",
+           comment = c(ORCID = "0009-0007-5749-5939")),
+    person("Debasish", "Hota", role = "aut",
+           comment = c(ORCID = "0000-0002-7339-1773")),
+    person("Anand", "Srinivasan", role = "aut",
+           comment = c(ORCID = "0000-0002-0663-0922")))
 Description: A mechanistic QSP model of Hantavirus infection dynamics,
     innate immune response, endothelial permeability, organ-specific injury
     (renal and pulmonary), and antiviral pharmacokinetics/pharmacodynamics
@@ -19,7 +29,9 @@ Imports:
     ggplot2,
     dplyr,
     tidyr,
-    gridExtra
+    gridExtra,
+    foreach,
+    doParallel
 Suggests:
     testthat (>= 3.0.0)
 Config/testthat/edition: 3

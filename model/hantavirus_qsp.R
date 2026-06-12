@@ -275,55 +275,6 @@ hantavirus_qsp_ode <- function(t, y, pars) {
   })
 }
 
-#' Clinical endpoint probability functions
-#'
-#' @param K Renal injury index
-#' @param L Lung injury index
-#' @param C_pro Pro-inflammatory cytokine burden
-#' @param C_pro_max Maximum cytokine burden observed
-#' @param K_auc AUC of renal injury (day*AU, default 0)
-#' @param L_auc AUC of lung injury (day*AU, default 0)
-#' @param C_auc AUC of pro-inflammatory cytokines (day*AU, default 0)
-#' @param syndrome Syndrome phenotype: "HFRS" or "HCPS"
-#' @param pars Parameter list
-#' @return Named list of probabilities
-compute_clinical_endpoints <- function(K, L, C_pro, C_pro_max, syndrome, pars,
-                                        K_auc = 0, L_auc = 0, C_auc = 0) {
-  w_auc <- if ("w_auc" %in% names(pars)) pars$w_auc else 0.30
-
-  if (syndrome == "HFRS") {
-    renal_risk    <- pars$w_K_HFRS * K / (K + pars$K50)
-    lung_risk     <- pars$w_L_HFRS * L / (L + pars$L50)
-    cytokine_risk <- pars$w_C_HFRS * C_pro / (C_pro + pars$C50)
-    # AUC contributions
-    renal_auc    <- pars$w_K_HFRS * K_auc / (K_auc + pars$K_auc50)
-    lung_auc     <- pars$w_L_HFRS * L_auc / (L_auc + pars$L_auc50)
-    cytokine_auc <- pars$w_C_HFRS * C_auc / (C_auc + pars$C_auc50)
-  } else {
-    # HCPS: lung-predominant
-    renal_risk    <- pars$w_K_HCPS * K / (K + pars$K50)
-    lung_risk     <- pars$w_L_HCPS * L / (L + pars$L50)
-    cytokine_risk <- pars$w_C_HCPS * C_pro / (C_pro + pars$C50)
-    # AUC contributions
-    renal_auc    <- pars$w_K_HCPS * K_auc / (K_auc + pars$K_auc50)
-    lung_auc     <- pars$w_L_HCPS * L_auc / (L_auc + pars$L_auc50)
-    cytokine_auc <- pars$w_C_HCPS * C_auc / (C_auc + pars$C_auc50)
-  }
-
-  peak_component  <- min(renal_risk + lung_risk + cytokine_risk, 1)
-  auc_component   <- min(renal_auc + lung_auc + cytokine_auc, 1)
-  mortality_prob  <- min((1 - w_auc) * peak_component + w_auc * auc_component, 1)
-
-  # Dialysis and ECMO as secondary outputs (for reporting). Half-saturation
-  # constants are decoupled from the mortality K50/L50 (see pd_models.R).
-  K50_d <- if ("K50_dialysis" %in% names(pars)) pars$K50_dialysis else pars$K50
-  L50_e <- if ("L50_ecmo" %in% names(pars)) pars$L50_ecmo else pars$L50
-  dialysis_prob <- K / (K + K50_d)
-  ecmo_prob     <- L / (L + L50_e)
-
-  list(
-    dialysis_prob  = dialysis_prob,
-    ecmo_prob      = ecmo_prob,
-    mortality_prob = mortality_prob
-  )
-}
+# NOTE: compute_clinical_endpoints() is defined once, in R/pd_models.R.
+# It was previously duplicated here; the duplicate was removed so behaviour can
+# no longer depend on the order in which the two files are sourced.
