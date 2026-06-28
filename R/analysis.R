@@ -40,8 +40,8 @@ plot_viral_kinetics <- function(sim_data, outfile = "outputs/viral_kinetics.png"
   arm_colors <- c(
     placebo      = "#757575",
     ribavirin    = "#1f78b4",
-    favipiravir  = "#33a02c",
-    combination  = "#e31a1c"
+    favipiravir  = "#E69F00",
+    combination  = "#D55E00"
   )
 
   sim_data$arm <- factor(sim_data$arm,
@@ -99,8 +99,8 @@ plot_biomarker_trajectories <- function(sim_data,
   arm_colors <- c(
     placebo      = "#757575",  # grey
     ribavirin    = "#1f78b4",  # blue
-    favipiravir  = "#33a02c",  # green
-    combination  = "#e31a1c"   # red
+    favipiravir  = "#E69F00",  # orange
+    combination  = "#D55E00"   # vermillion
   )
 
   # Convert to long format internally
@@ -158,8 +158,8 @@ plot_organ_injury <- function(sim_data,
   arm_colors <- c(
     placebo      = "#757575",
     ribavirin    = "#1f78b4",
-    favipiravir  = "#33a02c",
-    combination  = "#e31a1c"
+    favipiravir  = "#E69F00",
+    combination  = "#D55E00"
   )
 
   long_data <- tidyr::pivot_longer(
@@ -215,8 +215,8 @@ plot_pk_profiles <- function(sim_data,
   arm_colors <- c(
     placebo      = "#757575",
     ribavirin    = "#1f78b4",
-    favipiravir  = "#33a02c",
-    combination  = "#e31a1c"
+    favipiravir  = "#E69F00",
+    combination  = "#D55E00"
   )
 
   # Ribavirin profile
@@ -274,8 +274,8 @@ plot_treatment_window <- function(window_data,
   arm_colors <- c(
     placebo      = "#757575",
     ribavirin    = "#1f78b4",
-    favipiravir  = "#33a02c",
-    combination  = "#e31a1c"
+    favipiravir  = "#E69F00",
+    combination  = "#D55E00"
   )
 
   window_data$arm <- factor(window_data$arm,
@@ -314,8 +314,8 @@ plot_window_sensitivity <- function(window_data,
   arm_colors <- c(
     placebo     = "#757575",
     ribavirin   = "#1f78b4",
-    favipiravir = "#33a02c",
-    combination = "#e31a1c"
+    favipiravir = "#E69F00",
+    combination = "#D55E00"
   )
 
   window_data$arm <- factor(window_data$arm,
@@ -400,8 +400,8 @@ plot_adaptive_immunity <- function(sim_data,
   arm_colors <- c(
     placebo      = "#757575",
     ribavirin    = "#1f78b4",
-    favipiravir  = "#33a02c",
-    combination  = "#e31a1c"
+    favipiravir  = "#E69F00",
+    combination  = "#D55E00"
   )
 
   # Convert to long format

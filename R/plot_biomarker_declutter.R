@@ -87,8 +87,8 @@ if (file.exists(cache_path)) {
 arm_colors <- c(
   placebo     = "#757575",
   ribavirin   = "#1f78b4",
-  favipiravir = "#33a02c",
-  combination = "#e31a1c"
+  favipiravir = "#E69F00",
+  combination = "#D55E00"
 )
 
 arm_labels <- c(

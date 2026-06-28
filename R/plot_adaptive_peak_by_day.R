@@ -158,8 +158,8 @@ summary_long$comp_label <- factor(comp_labels[summary_long$compartment_raw],
 
 arm_colors <- c(
   ribavirin    = "#1f78b4",
-  favipiravir  = "#33a02c",
-  combination  = "#e31a1c"
+  favipiravir  = "#E69F00",
+  combination  = "#D55E00"
 )
 
 arm_labels <- c(

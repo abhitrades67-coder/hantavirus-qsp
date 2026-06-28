@@ -2,7 +2,7 @@
   HANTAVIRUS QSP — PRE-EXPOSURE PROPHYLAXIS ANALYSIS
 ============================================================
 
-Date: 2026-06-03
+Date: 2026-06-23
 Treatment days: 0, 1, 2, 3, 4, 5 (post-exposure)
 Arms: placebo, ribavirin, favipiravir, combination
 Disease establishment threshold: V_peak > 1e+04 copies/mL

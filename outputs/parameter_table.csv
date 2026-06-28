@@ -2,7 +2,7 @@
 "T_0",1e+06,"cells","Initial susceptible target cells","Assumed (typical epithelial pool)","low"
 "I_0",0,"cells","Initial infected cells","Assumed","low"
 "V_0",1000,"copies/mL","Initial viral inoculum (increased for establishment)","Estimated from clinical viremia","medium"
-"beta",1e-07,"mL/copy/day","Infection rate constant (recalibrated for peak ~day 7.5)","Calibrated to clinical viremia timing","medium"
+"beta",1e-07,"mL/copy/day","Infection rate constant (calibrated for R0=3.33, ~9.6% placebo mortality)","Calibrated to Huggins JID 1991 placebo mortality","medium"
 "p",100,"copies/cell/day","Viral production rate","Fitted to peak viremia","medium"
 "c",3,"/day","Viral clearance rate","Literature (RNA virus half-life ~5.5h)","high"
 "k_NSs",0.5,"/day","NSs production rate","Assumed (viral protein kinetics)","low"

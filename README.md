@@ -114,7 +114,8 @@ Hantavirus_QSP/
 │   ├── sensitivity_analysis.R / uncertainty_quantification.R / gsa_prcc.R
 │   ├── ablation_analysis.R / preexposure_analysis.R / optimal_duration.R / vpc_analysis.R
 │   ├── plot_*.R              # Organ/adaptive heatmaps & decluttered trajectories
-│   └── regen_all_aux.R / regen_cached_figs.R   # Re-run auxiliaries / cached figures
+│   ├── regen_all_aux.R / regen_cached_figs.R   # Re-run auxiliaries / cached figures
+│   └── make_s7.R             # Supplementary Fig. S7 (external-corroboration overlay)
 ├── tests/testthat/           # Unit tests (parameter & model invariants)
 ├── outputs/                  # Generated figures and tables
 ├── DESCRIPTION
@@ -159,6 +160,7 @@ and VPC) live in separate scripts; regenerate them with:
 ```bash
 Rscript R/regen_all_aux.R        # re-runs the auxiliary analyses
 Rscript R/regen_cached_figs.R    # regenerates the cached-data figures
+Rscript R/make_s7.R              # regenerates Supplementary Fig. S7 (external corroboration)
 ```
 
 > Note: `R/sensitivity_analysis.R` and `R/uncertainty_quantification.R` must be
@@ -244,9 +246,10 @@ See `outputs/parameter_table.csv` for the complete parameter table with:
 - Confidence rating (high / medium / low)
 
 Key references:
-- Huggins et al. — Ribavirin in HFRS (NEJM, 1991)
-- Pillai et al. — Favipiravir clinical pharmacokinetics
-- Williams et al. — Immune response in orthohantavirus (Viruses, 2023)
+- Huggins et al. — Ribavirin in HFRS (J. Infect. Dis., 1991)
+- Furuta et al. — Favipiravir (T-705), broad-spectrum viral RdRp inhibitor (Proc. Jpn. Acad. Ser. B, 2017)
+- Safronetz et al. — Favipiravir against hantaviruses (Antimicrob. Agents Chemother., 2013)
+- Williams et al. — Zoonotic spillover & rodent-borne RNA viruses (Viruses, 2021)
 - KDIGO — AKI staging criteria
 
 ## Model Limitations

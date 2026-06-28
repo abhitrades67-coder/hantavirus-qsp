@@ -125,8 +125,8 @@ long_data$compartment <- factor(long_data$compartment,
 arm_colors <- c(
   placebo      = "#757575",
   ribavirin    = "#1f78b4",
-  favipiravir  = "#33a02c",
-  combination  = "#e31a1c"
+  favipiravir  = "#E69F00",
+  combination  = "#D55E00"
 )
 
 cat("Generating panel plot...\n")
