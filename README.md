@@ -154,7 +154,7 @@ main()
 
 `run_pipeline.R` runs the core virtual trial and produces the main figures and
 tables. The additional analyses (local/global sensitivity, uncertainty
-quantification, mechanism ablation, pre-exposure prophylaxis, optimal-duration,
+quantification, mechanism ablation, post-exposure prophylaxis, optimal-duration,
 and VPC) live in separate scripts; regenerate them with:
 
 ```bash

@@ -1,4 +1,4 @@
-#' Pre-Exposure Prophylaxis (PEP) Analysis
+#' Post-Exposure Prophylaxis (PEP) Analysis
 #'
 #' Evaluates whether starting antiviral treatment during the incubation period
 #' (days 0-5 post-exposure, before symptom onset) can prevent disease onset.
@@ -22,7 +22,7 @@ source("R/simulate_trial.R")
 # Get default parameters
 pars <- get_parameters()
 
-# Pre-exposure treatment days (post-infection)
+# Post-exposure treatment days (post-infection)
 # Day 0 = immediate PEP at exposure
 # Day 5 = treatment at symptom onset (equivalent to current "Day 1" post-symptom)
 pep_days <- 0:5
@@ -35,7 +35,7 @@ arms <- c("placebo", "ribavirin", "favipiravir", "combination")
 V_ESTABLISH_THRESHOLD <- 1e4
 
 cat("============================================================\n")
-cat("  PRE-EXPOSURE PROPHYLAXIS (PEP) ANALYSIS\n")
+cat("  POST-EXPOSURE PROPHYLAXIS (PEP) ANALYSIS\n")
 cat("============================================================\n\n")
 cat(sprintf("Treatment days post-exposure: %s\n", paste(pep_days, collapse = ", ")))
 cat(sprintf("Treatment arms: %s\n", paste(arms, collapse = ", ")))
@@ -133,7 +133,7 @@ for (arm in arms) {
 
 # Summary table
 cat("\n============================================================\n")
-cat("  PRE-EXPOSURE PROPHYLAXIS RESULTS SUMMARY\n")
+cat("  POST-EXPOSURE PROPHYLAXIS RESULTS SUMMARY\n")
 cat("============================================================\n\n")
 
 for (arm in arms) {
@@ -193,7 +193,7 @@ write.csv(results, "outputs/preexposure_results.csv", row.names = FALSE)
 # Write summary text
 sink("outputs/preexposure_summary.txt")
 cat("============================================================\n")
-cat("  HANTAVIRUS QSP — PRE-EXPOSURE PROPHYLAXIS ANALYSIS\n")
+cat("  HANTAVIRUS QSP — POST-EXPOSURE PROPHYLAXIS ANALYSIS\n")
 cat("============================================================\n\n")
 cat(sprintf("Date: %s\n", Sys.Date()))
 cat(sprintf("Treatment days: %s (post-exposure)\n", paste(pep_days, collapse = ", ")))
