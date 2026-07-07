@@ -157,11 +157,9 @@ p <- ggplot(heat_data,
   labs(
     x        = "Treatment arm",
     y        = "Treatment start day",
-    title    = "Peak Organ Injury: Heatmap by Treatment Arm and Day",
-    subtitle = paste0(
-      "Values = % of placebo peak injury | ",
-      "Blue = organ-protective | Red = worse than placebo | White = at placebo level"
-    )
+    # No in-figure title/subtitle: the caption is supplied in the manuscript
+    # (journal style). Legend + axis labels carry the interpretation.
+    title    = NULL
   ) +
   theme_qsp() +
   theme(
@@ -172,7 +170,7 @@ p <- ggplot(heat_data,
   )
 
 ggsave_safe("outputs/organ_injury_heatmap.png",
-            width = 12, height = 5.5, dpi = 300)
+            width = 12, height = 5.5, dpi = 600)
 
 cat("Saved: outputs/organ_injury_heatmap.png\n")
 cat("Done.\n")

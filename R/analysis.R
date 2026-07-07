@@ -80,7 +80,7 @@ plot_viral_kinetics <- function(sim_data, outfile = "outputs/viral_kinetics.png"
       x       = "Time (days)",
       y       = expression("Viral RNA (copies/mL)"),
       colour  = "Treatment arm",
-      title   = "Viral Load Trajectories by Treatment Start Day"
+      title   = NULL
     ) +
     theme_qsp()
 
@@ -289,7 +289,7 @@ plot_treatment_window <- function(window_data,
       x = "Treatment Start Day",
       y = "Viral Load AUC (copies·day/mL)",
       fill = "Treatment arm",
-      title = "Treatment Window Analysis — Viral Load AUC by Start Day"
+      title = NULL
     ) +
     theme_qsp() +
     ggplot2::scale_fill_manual(values = arm_colors) +

@@ -2,7 +2,7 @@
   HANTAVIRUS QSP VIRTUAL TRIAL — SIMULATION SUMMARY
 ============================================================
 
-Date: 2026-06-23
+Date: 2026-06-30
 Patients per arm: 200
 Arms: placebo, ribavirin, favipiravir, combination
 

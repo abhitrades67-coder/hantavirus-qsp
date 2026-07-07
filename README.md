@@ -167,6 +167,25 @@ Rscript R/make_s7.R              # regenerates Supplementary Fig. S7 (external c
 > run as standalone `Rscript` invocations (they fail if sourced inside another
 > script's environment).
 
+### Regenerate the submission figures
+
+The four main-text figures are produced entirely by code and copied into the
+manuscript submission folder by `R/assemble_figures.R`:
+
+```bash
+Rscript R/run_pipeline.R           # Figure 1 (viral kinetics) + Figure 2 (treatment window)
+Rscript R/plot_organ_heatmap.R     # Figure 3 (organ injury heatmap)
+Rscript R/plot_adaptive_heatmap.R  # Figure 4 (adaptive immunity heatmap)
+Rscript R/assemble_figures.R       # copy outputs/*.png -> Figures/Figure_1..4.png
+```
+
+Figures carry no in-figure title (the caption is supplied in the manuscript).
+Figures 1–2 are seeded (`virtual_population` seed 42, `simulate_trial` seed 123),
+and the heatmap scripts read git-tracked per-patient caches
+(`outputs/{organ,adaptive}_peak_data.csv`), so re-running reproduces the
+submitted figures exactly. Delete those caches (or run `R/regen_cached_figs.R`)
+to re-simulate the heatmap inputs from scratch.
+
 ### Individual components
 
 ```r

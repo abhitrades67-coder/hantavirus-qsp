@@ -155,8 +155,9 @@ p <- ggplot(heat_data,
   labs(
     x        = "Treatment arm",
     y        = "Treatment start day",
-    title    = "Peak Adaptive Immune Response: Heatmap by Arm and Day",
-    subtitle = "Values = % of placebo peak | Blue = preserved | Red = suppressed | White = at placebo level"
+    # No in-figure title/subtitle: the caption is supplied in the manuscript
+    # (journal style). Legend + axis labels carry the interpretation.
+    title    = NULL
   ) +
   theme_qsp() +
   theme(
@@ -167,7 +168,7 @@ p <- ggplot(heat_data,
   )
 
 ggsave_safe("outputs/adaptive_immunity_heatmap.png",
-            width = 9, height = 7, dpi = 300)
+            width = 9, height = 7, dpi = 600)
 
 cat("Saved: outputs/adaptive_immunity_heatmap.png\n")
 cat("Done.\n")
