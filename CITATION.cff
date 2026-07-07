@@ -23,8 +23,8 @@ authors:
     family-names: Srinivasan
     affiliation: "Department of Pharmacology, AIIMS Bhubaneswar, India"
     orcid: "https://orcid.org/0000-0002-0663-0922"
-version: 1.0.0
-date-released: "2026-06-05"
+version: 1.2.0
+date-released: "2026-07-07"
 doi: "10.5281/zenodo.20558774"
 license: MIT
 repository-code: "https://github.com/abhitrades67-coder/hantavirus-qsp"
