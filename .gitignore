@@ -7,8 +7,6 @@ check_*.R
 Rplots.pdf
 
 # --- Editor / tooling caches ---
-.qwen/
-.antigravitycli/
 .Rproj.user/
 .Rhistory
 .RData
@@ -22,6 +20,8 @@ dev/
 # --- Manuscript (paper is archived separately, not part of the code release) ---
 manuscript/
 *.docx
+# Publisher guide-for-authors PDFs kept locally for reference; not ours to redistribute
+*.pdf
 
 # --- OS cruft ---
 .DS_Store
