@@ -1,7 +1,7 @@
 #' Biomarker Trajectories — Decluttered
 #'
 #' Option B: Facet by treatment day. 3 biomarkers (rows) × 7 days (cols) = 21 panels.
-#'   Each panel shows 4 median lines (placebo + 3 active arms).
+#'   Each panel shows 4 trajectories (placebo + 3 active arms).
 #'   No individual patient spaghetti.
 #'
 #' Option C: Delta-from-placebo curves.
@@ -125,17 +125,18 @@ traj_long <- all_traj |>
 cat("Generating Option B (facet by treatment day)...\n")
 
 p_b <- ggplot(traj_long, aes(x = time, y = value, colour = arm)) +
-  # Thin lines for each arm (no individual patient spaghetti)
-  stat_summary(fun = median, geom = "line", linewidth = 1.0,
-               aes(group = arm)) +
+  # One deterministic trajectory per arm (no individual patient spaghetti).
+  # The cache holds exactly one row per (arm, day, time), so this is the same
+  # series a median over n = 1 would have drawn.
+  geom_line(linewidth = 1.0, aes(group = arm)) +
   facet_grid(biomarker ~ day_label, scales = "free_y") +
   scale_colour_manual(values = arm_colors, labels = arm_labels) +
   labs(
     x        = "Time (days)",
-    y        = "Value (median)",
+    y        = "Value",
     colour   = "Treatment arm",
     title    = "Biomarker Trajectories by Treatment Start Day",
-    subtitle = "Rows: biomarkers | Columns: treatment start day | Lines: arm medians"
+    subtitle = "Rows: biomarkers | Columns: treatment start day | Lines: single deterministic trajectory per arm"
   ) +
   theme_qsp() +
   theme(
@@ -155,7 +156,10 @@ cat("  Saved: outputs/biomarker_trajectories_faceted.png\n")
 
 cat("Generating Option C (delta from placebo)...\n")
 
-# Compute placebo median at each time point for each treatment day
+# Placebo reference at each time point for each treatment day. The cache holds
+# one row per (arm, day, time), so this median is over n = 1 and is simply the
+# value itself; median() is kept only as a safe aggregator if the cache ever
+# gains real replicates.
 placebo_med <- traj_long |>
   filter(arm == "placebo") |>
   group_by(biomarker, day_label, time) |>
@@ -188,7 +192,7 @@ p_c <- ggplot(delta_data,
   labs(
     x        = "Time (days)",
     y        = expression(Delta * " from placebo (treatment " - " placebo)"),
-    colour   = "Start day",
+    # colour legend name is set in scale_colour_brewer() above (single source of truth)
     linetype = "Arm",
     title    = "Treatment Effect vs. Placebo: Biomarker Delta Curves",
     subtitle = paste0(

@@ -2,7 +2,7 @@
 #'
 #' For each treatment arm and day, extracts peak values of CD8_E, CD4, IgM, IgG.
 #' Generates a 4-panel figure: one panel per compartment, X = treatment day, Y = peak.
-#' Placebo shown as horizontal reference band.
+#' Placebo shown as a horizontal reference line.
 #'
 #' This captures the "earlier = better" dose-response relationship cleanly,
 #' with zero line overlap.
@@ -28,8 +28,12 @@ arms <- c("ribavirin", "favipiravir", "combination")
 t_end <- 21
 dt <- 0.5
 
-# Use multiple patients to get mean ± SD error bars
-n_patients <- 10
+# One patient per arm/day. `simulate_patient()` is called with the same
+# `pars <- get_parameters()` every time and nothing on this path is stochastic
+# (no virtual population is drawn here), so any number of replicates would be
+# byte-identical and every SD/SE would be exactly 0. Running one deterministic
+# representative patient is the honest description of what this figure shows.
+n_patients <- 1
 
 cat("Running adaptive immunity simulations for peak analysis...\n")
 cat(sprintf("  %d patients x %d arms x %d days = %d simulations\n",
@@ -69,13 +73,9 @@ for (p in 1:n_patients) {
 }
 placebo_summary <- data.frame(
   CD8_E_mean = mean(placebo_peaks$CD8_E_peak),
-  CD8_E_sd   = sd(placebo_peaks$CD8_E_peak),
   CD4_mean   = mean(placebo_peaks$CD4_peak),
-  CD4_sd     = sd(placebo_peaks$CD4_peak),
   IgM_mean   = mean(placebo_peaks$IgM_peak),
-  IgM_sd     = sd(placebo_peaks$IgM_peak),
-  IgG_mean   = mean(placebo_peaks$IgG_peak),
-  IgG_sd     = sd(placebo_peaks$IgG_peak)
+  IgG_mean   = mean(placebo_peaks$IgG_peak)
 )
 cat("done\n")
 
@@ -97,18 +97,14 @@ for (tday in treatment_days) {
   cat("\n")
 }
 
-# Summarise: mean ± SE per arm per day
+# Collect the single deterministic peak per arm per day
 summary_tbl <- results |>
   group_by(arm, treatment_day) |>
   summarise(
     CD8_E_mean = mean(CD8_E_peak),
-    CD8_E_se   = sd(CD8_E_peak) / sqrt(n()),
     CD4_mean   = mean(CD4_peak),
-    CD4_se     = sd(CD4_peak) / sqrt(n()),
     IgM_mean   = mean(IgM_peak),
-    IgM_se     = sd(IgM_peak) / sqrt(n()),
     IgG_mean   = mean(IgG_peak),
-    IgG_se     = sd(IgG_peak) / sqrt(n()),
     .groups = "drop"
   )
 
@@ -120,13 +116,7 @@ summary_long <- summary_tbl |>
     values_to = "peak"
   ) |>
   mutate(
-    compartment_raw = gsub("_mean$", "", compartment),
-    se = case_when(
-      compartment == "CD8_E_mean" ~ CD8_E_se,
-      compartment == "CD4_mean"   ~ CD4_se,
-      compartment == "IgM_mean"   ~ IgM_se,
-      compartment == "IgG_mean"   ~ IgG_se
-    )
+    compartment_raw = gsub("_mean$", "", compartment)
   )
 
 summary_long$arm <- factor(summary_long$arm,
@@ -136,9 +126,7 @@ summary_long$arm <- factor(summary_long$arm,
 placebo_long <- data.frame(
   compartment_raw = c("CD8_E", "CD4", "IgM", "IgG"),
   placebo_mean = c(placebo_summary$CD8_E_mean, placebo_summary$CD4_mean,
-                   placebo_summary$IgM_mean, placebo_summary$IgG_mean),
-  placebo_sd   = c(placebo_summary$CD8_E_sd, placebo_summary$CD4_sd,
-                   placebo_summary$IgM_sd, placebo_summary$IgG_sd)
+                   placebo_summary$IgM_mean, placebo_summary$IgG_mean)
 )
 
 # Merge placebo reference
@@ -156,6 +144,13 @@ comp_labels <- c(
 summary_long$comp_label <- factor(comp_labels[summary_long$compartment_raw],
   levels = comp_labels)
 
+# The placebo reference layers are drawn from `placebo_long`, so it must carry
+# the faceting variable too. Without `comp_label`, ggplot2 replicates the whole
+# reference data frame into every panel and the CD8_E reference line lands in
+# the CD4 / IgM / IgG panels, breaking scales = "free_y".
+placebo_long$comp_label <- factor(comp_labels[placebo_long$compartment_raw],
+  levels = comp_labels)
+
 arm_colors <- c(
   ribavirin    = "#1f78b4",
   favipiravir  = "#E69F00",
@@ -171,23 +166,14 @@ arm_labels <- c(
 cat("Generating figure...\n")
 
 p <- ggplot(summary_long, aes(x = treatment_day, y = peak, colour = arm)) +
-  # Placebo reference band (horizontal, spans full X range)
-  geom_rect(data = placebo_long,
-            aes(xmin = -Inf, xmax = Inf,
-                ymin = placebo_mean - placebo_sd,
-                ymax = placebo_mean + placebo_sd,
-                y = NULL, colour = NULL),
-            fill = "#757575", alpha = 0.10, inherit.aes = FALSE) +
+  # Placebo reference line (horizontal, spans full X range)
   geom_hline(data = placebo_long,
              aes(yintercept = placebo_mean),
              linetype = "dashed", colour = "#757575", linewidth = 0.7) +
 
-  # Treatment lines with error bars
+  # Treatment lines
   geom_line(linewidth = 1.0, position = position_dodge(width = 0.3)) +
   geom_point(size = 2.5, position = position_dodge(width = 0.3)) +
-  geom_errorbar(aes(ymin = peak - se, ymax = peak + se),
-                width = 0.15, linewidth = 0.6,
-                position = position_dodge(width = 0.3)) +
 
   facet_wrap(~ comp_label, scales = "free_y", ncol = 2) +
   scale_colour_manual(values = arm_colors, labels = arm_labels) +
@@ -200,7 +186,7 @@ p <- ggplot(summary_long, aes(x = treatment_day, y = peak, colour = arm)) +
     y = "Peak response (AU)",
     colour = "Treatment arm",
     title = "Peak Adaptive Immune Response by Treatment Start Day",
-    subtitle = "Grey dashed = placebo mean; grey band = placebo ±1 SD; error bars = ±1 SE"
+    subtitle = "Single deterministic representative patient per arm and start day; grey dashed = placebo reference"
   ) +
   theme_qsp() +
   theme(

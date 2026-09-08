@@ -219,42 +219,21 @@ simulate_patient <- function(pars, arm, t_start = 3, t_end = 21, dt = 0.1) {
     V_max_pre <- max(pre_out$V, na.rm = TRUE)
 
     if (I_max_pre < 1e5 && V_max_pre < 1e6) {
-      # Infection did not establish — return burn-out result immediately
-      n_out <- length(times)
-      burn_out <- data.frame(
-        time = times,
-        T    = rep(pars$T_0, n_out),
-        I    = rep(0, n_out),
-        V    = rep(0, n_out),
-        F_I  = rep(0, n_out),
-        NK   = rep(0, n_out),
-        F_II = rep(0, n_out),
-        C_pro = rep(0, n_out),
-        P    = rep(0, n_out),
-        K    = rep(0, n_out),
-        L    = rep(0, n_out),
-        PLT  = rep(2.5e5, n_out),
-        CD4  = rep(0, n_out),
-        CD8_N = rep(0, n_out),
-        CD8_E = rep(0, n_out),
-        IgM  = rep(0, n_out),
-        IgG  = rep(0, n_out),
-        NSs  = rep(0, n_out),
-        T_reg = rep(0, n_out),
-        C_RBV = rep(0, n_out),
-        C_FAV_gut = rep(0, n_out),
-        C_FAV_plasma = rep(0, n_out),
-        C_FAVI_RTP = rep(0, n_out),
-        Hgb  = rep(15, n_out),
-        CD8_M = rep(0, n_out),
-        F_III = rep(0, n_out),
-        B_cell = rep(0, n_out),
-        IL6  = rep(0, n_out),
-        IL10 = rep(0, n_out),
-        TNFa = rep(0, n_out),
-        D_dimer = rep(0, n_out),
-        check.names = FALSE
-      )
+      # Infection did not establish - return a burn-out result immediately.
+      #
+      # This placeholder MUST have exactly the same columns as a real solver
+      # return, otherwise downstream code silently breaks. It previously was a
+      # hand-written data.frame listing states the model does not have (IL6,
+      # TNFa, D_dimer, T_reg, ...) while omitting C_anti, C_FAV and Hgb_drop,
+      # so max(sim$Hgb_drop) returned -Inf and rbind() against real output
+      # failed. Derive the column set from the model itself so it can never
+      # drift again.
+      state_names <- names(build_initial_state(pars))
+      burn_out <- data.frame(time = times)
+      for (nm in state_names) burn_out[[nm]] <- rep(0, length(times))
+      # Disease-free values for the states that are not zero at baseline.
+      burn_out$T   <- rep(pars$T_0, length(times))
+      burn_out$PLT <- rep(pars$PLT_0, length(times))
       return(burn_out)
     }
 
@@ -285,9 +264,21 @@ simulate_patient <- function(pars, arm, t_start = 3, t_end = 21, dt = 0.1) {
 
     out <- as.data.frame(out)
 
-    # Validate: no NaN/Inf in key states
-    if (any(is.nan(out$V)) || any(is.infinite(out$V))) {
-      warning("Simulation produced NaN/Inf in viral load")
+    # Validate: the solver must have reached every requested output time.
+    # deSolve returns a SHORT matrix (with only a warning) when it exhausts
+    # maxsteps. Summarising that with max()/min()/AUC as if it were complete
+    # always biases toward a lower peak and a smaller area, i.e. a failed
+    # simulation reads as a treatment success. Reject it instead.
+    if (nrow(out) < length(times)) {
+      warning(sprintf(
+        "Simulation truncated for arm=%s: solver returned %d of %d time points (stopped at t=%.3f)",
+        arm, nrow(out), length(times), max(out$time)))
+      return(NULL)
+    }
+
+    # Validate: no NaN/Inf in any state, not just viral load
+    if (any(!is.finite(as.matrix(out)))) {
+      warning("Simulation produced non-finite values")
       return(NULL)
     }
 
@@ -561,8 +552,15 @@ simulate_patient_presymptomatic <- function(pars, arm, t_exposure = 0,
 
     out <- as.data.frame(out)
 
-    if (any(is.nan(out$V)) || any(is.infinite(out$V))) {
-      warning("Pre-symptomatic simulation produced NaN/Inf in viral load")
+    if (nrow(out) < length(times)) {
+      warning(sprintf(
+        "Pre-symptomatic simulation truncated for arm=%s: %d of %d time points (stopped at t=%.3f)",
+        arm, nrow(out), length(times), max(out$time)))
+      return(NULL)
+    }
+
+    if (any(!is.finite(as.matrix(out)))) {
+      warning("Pre-symptomatic simulation produced non-finite values")
       return(NULL)
     }
 

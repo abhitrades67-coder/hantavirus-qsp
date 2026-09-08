@@ -25,7 +25,15 @@ get_parameters <- function() {
   # beta recalibrated (2026-05-21, revised 2026-06): set to 1e-7 to ensure
   # >99% of virtual patients cross the infection bistable threshold (R0=3.33).
   # At R0 ~2.0-2.5, ~34% of patients with V0 variability burn out.
-  # R0 = beta * T_0 * p / c = 1e-7 * 1e6 * 100 / 3 = 3.33.
+  # NOTE ON NOTATION: beta * T_0 * p / c = 3.33 is NOT the basic reproduction
+  # number - it has units of 1/day. The dimensionless disease-free R0 for this
+  # target-cell subsystem is beta*T_0*p/(c*delta) = 111 with delta =
+  # delta_natural. The quantity below is an empirical viral-establishment
+  # INDEX used for pre-screening; measured against this model its critical
+  # value is about 1.5 (infection establishes at 2.0, fails at 1.33), not 1,
+  # because early CD8 priming and IFN suppression, not delta_natural, set the
+  # effective clearance rate. Do not report it as R0.
+  # establishment index = beta * T_0 * p / c = 1e-7 * 1e6 * 100 / 3 = 3.33 /day.
   # Single-patient placebo mortality = 9.64% (cf. Huggins JID 1991: 9.4%).
   pars$beta      <- 1.0e-7       # mL/copy/day      # Infection rate constant (calibrated for 9.6% mortality)
   pars$p         <- 100          # copies/cell/day  # Viral production rate
@@ -306,6 +314,10 @@ build_parameter_table <- function(pars = get_parameters()) {
     description="Viral production rate", source="Fitted to peak viremia", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="c", value=3, units="/day",
     description="Viral clearance rate", source="Literature (RNA virus half-life ~5.5h)", confidence="high"))
+  tbl <- rbind(tbl, data.frame(parameter="k_T_reg", value=0.30, units="/day",
+    description="Target-cell regeneration rate (logistic, carrying capacity T_0)", source="Assumed (epithelial turnover)", confidence="low"))
+  tbl <- rbind(tbl, data.frame(parameter="symptom_onset_day", value=5, units="days",
+    description="Infection-to-symptom-onset burn-in; therapeutic simulations start at this point", source="Assumed (hantavirus incubation 7-42 d)", confidence="low"))
 
   # --- NSs protein ---
   tbl <- rbind(tbl, data.frame(parameter="k_NSs", value=0.5, units="/day",
@@ -402,7 +414,7 @@ build_parameter_table <- function(pars = get_parameters()) {
   tbl <- rbind(tbl, data.frame(parameter="K_CD4_F", value=50, units="AU",
     description="CD4 activation saturation (F_I)", source="Assumed", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="d_CD4", value=0.03, units="/day",
-    description="CD4 decay (t1/2 ~ 23d, memory)", source="General viral immunology", confidence="medium"))
+    description="CD4 decay (t1/2 ~ 7d, effector)", source="General viral immunology", confidence="medium"))
 
   # --- Adaptive immunity: CD8+ cytotoxic T cells (delayed maturation chain) ---
   tbl <- rbind(tbl, data.frame(parameter="k_CD8_I", value=5.0, units="AU/day",
@@ -492,7 +504,11 @@ build_parameter_table <- function(pars = get_parameters()) {
   tbl <- rbind(tbl, data.frame(parameter="Vd_RBV", value=45, units="L",
     description="Ribavirin volume of distribution (plasma)", source="FDA label / literature", confidence="high"))
   tbl <- rbind(tbl, data.frame(parameter="CL_RBV_std", value=5.0, units="L/day",
-    description="Ribavirin effective clearance at eGFR=90 (t1/2=6.3d, RBC-adjusted)", source="Recalibrated from chronic dosing PK (t1/2=151h)", confidence="medium"))
+    description="Ribavirin effective clearance at eGFR=90 (t1/2=6.2d, RBC-adjusted)", source="Recalibrated from chronic dosing PK (t1/2 ~150 h)", confidence="medium"))
+  tbl <- rbind(tbl, data.frame(parameter="CL_RBV", value=5.0, units="L/day",
+    description="Ribavirin clearance actually used; rescaled per patient by eGFR", source="Set to CL_RBV_std at the reference eGFR", confidence="medium"))
+  tbl <- rbind(tbl, data.frame(parameter="eGFR_ref", value=90, units="mL/min",
+    description="Reference eGFR at which CL_RBV_std applies (linear renal scaling)", source="Clinical reference", confidence="high"))
   tbl <- rbind(tbl, data.frame(parameter="k_hgb", value=0.0009, units="(g/dL)/(ug/mL)/day",
     description="Hgb drop rate per RBV concentration in bounded toxicity submodel", source="Calibrated to clinical RBV-associated decline (~2-4 g/dL)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="d_hgb", value=0.05, units="/day",

@@ -16,7 +16,12 @@ library(deSolve)
 library(dplyr)
 library(ggplot2)
 
-setwd("G:/My Drive/Hantavirus_QSP")
+# NOTE: this script previously called setwd() on a hardcoded Google Drive path,
+# which made it unrunnable on any machine but the author's -- including from the
+# Zenodo archive. Run it from the project root, like every other script here.
+if (!file.exists("DESCRIPTION") || !dir.exists("model")) {
+  stop("Run this script from the Hantavirus_QSP project root.")
+}
 
 # Source all model components
 source("model/parameters.R")

@@ -131,7 +131,13 @@ heat_data$compartment <- factor(heat_data$compartment_raw,
 # Flip color scale: blue = protection (below 100%), red = worse (above 100%)
 max_pct <- max(heat_data$pct_of_placebo, na.rm = TRUE)
 min_pct <- min(heat_data$pct_of_placebo, na.rm = TRUE)
-lim <- max(abs(c(max_pct - 100, 100 - min_pct)), 5)
+# Do NOT force the limits symmetric about 100. Nothing in this figure is above
+# placebo (data span ~4%-100%), so a symmetric range put half the colour ramp
+# beyond the data and compressed the entire signal into the lower half of the
+# scale. scale_fill_gradient2 rescales each side of the midpoint independently,
+# so asymmetric limits are handled correctly.
+fill_lo <- min(min_pct, 100) - 2
+fill_hi <- max(max_pct, 105)
 
 cat(sprintf("  Placebo means: P=%.4f  K=%.4f  L=%.4f\n",
             placebo_means["P"], placebo_means["K"], placebo_means["L"]))
@@ -143,15 +149,16 @@ p <- ggplot(heat_data,
   geom_tile(colour = "white", linewidth = 1.2) +
   geom_text(aes(label = sprintf("%.0f%%", pct_of_placebo)),
             size = 3.5, fontface = "bold") +
-  facet_wrap(~ compartment, ncol = 3,
-             labeller = label_wrap_gen(width = 14)) +
+  # Strip labels already contain explicit newlines; re-wrapping them made the
+  # three panel strips different heights.
+  facet_wrap(~ compartment, ncol = 3) +
   scale_fill_gradient2(
     low      = "#4575b4",   # blue: protection (lower injury than placebo)
     mid      = "#f7f7f7",   # white: at placebo level
     high     = "#d73027",   # red: worse injury than placebo
     midpoint = 100,
-    limits   = c(100 - lim, 100 + lim),
-    name     = "% of placebo\npeak injury\n(lower = better)",
+    limits   = c(fill_lo, fill_hi),
+    name     = "% of placebo\npeak injury\n(blue = below placebo,\nlower = better)",
     guide    = guide_colourbar(barwidth = 1.2, barheight = 12)
   ) +
   labs(

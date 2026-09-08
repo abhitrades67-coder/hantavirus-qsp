@@ -7,37 +7,40 @@ treatment with **Ribavirin** and **Favipiravir**.
 ## Model Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        VIRAL DYNAMICS                                │
-│  dT/dt = -β·V·T                                                     │
-│  dI/dt = β·V·T - δ_nat·I - δ_NK·NK·I  (non-cytopathic)             │
-│  dV/dt = p·I · IFN_antiviral · (1-E_RBV) · (1-E_FAV) · (1-ψ) - c·V │
-└────────────┬───────────────────────────────────┬─────────────────────┘
-             │                                   │
-             ▼                                   ▼
-┌──────────────────────────┐        ┌──────────────────────────┐
-│  INNATE IMMUNE (6-var)   │        │  ENDOTHELIAL + PLT       │
-│  NSs → IFN antagonist    │        │  dP/dt = k_PV·V          │
-│  F_I → Type I IFN (α/β)  │        │        + k_PC·C_pro/Cref │
-│  NK  → NK cells          │        │  dPLT = prod-loss-cons   │
-│  F_II → Type II IFN (γ)  │        └──────────┬───────────────┘
-│  C_pro → Pro-infl cytokines │                 │
-│         + auto-amplification│                 ▼
-│  C_anti → IL-10 resolution │      ┌─────────────────────────┐
-└──────────┬─────────────────┘      │    ORGAN INJURY          │
-           │                        │  dK/dt (Renal)           │
-           │                        │  dL/dt (Lung/Cardio)     │
-           ▼                        └─────────────────────────┘
-    IFN_antiviral reduces viral production
-           ▲                                ▲
-           │                                │
-┌──────────┴─────────┐      ┌───────────────┴──────────┐
-│  RIBAVIRIN PK/PD   │      │  FAVIPIRAVIR PK/PD       │
-│  1-comp IV         │      │  Oral absorption + gut   │
-│  Emax PD           │      │  Nonlinear CL + RTP met. │
-│                    │      │  Emax PD (via RTP)        │
-└────────────────────┘      └──────────────────────────┘
+VIRAL DYNAMICS
+  dT/dt = k_T_reg * (T + eps) * (1 - T/T_0) - beta * V * T
+  dI/dt = beta * V * T - delta_nat * I - delta_NK * NK * I * (RBV boost)
+                       - CD8_clearance(CD8_E, I)
+  dV/dt = p * I * IFN_antiviral * (1 - E_RBV) * (1 - E_FAV)
+                * (1 - psi * E_RBV * E_FAV)
+          - c * V - k_neut_IgM * IgM * V - k_neut_IgG * IgG * V
+
+INNATE IMMUNE (5 states)          ADAPTIVE IMMUNE (5 states)
+  NSs   -> IFN antagonist           CD8_N -> primed pool
+  F_I   -> type I IFN (antiviral)   CD8_E -> effector pool (kills I)
+  NK    -> NK cells                 CD4   -> helper T cells
+  F_II  -> type II IFN              IgM   -> early antibody
+  C_pro -> pro-inflammatory         IgG   -> neutralising antibody
+  C_anti-> IL-10-like resolution
+
+ENDOTHELIUM & PLATELETS           ORGAN INJURY
+  dP/dt   = k_PV * (V/V_ref)        dK/dt = k_KP * P * (1 - E_RBV_endo)
+          + k_PC * (C_pro/C_ref)          + k_KC * (C_pro/C_ref)
+          + k_P_CD8 * CD8_E               + k_KH * thrombocytopenia
+          - d_P * P                       - d_K_recovered * K
+  dPLT/dt = k_PLT_prod                dL/dt = k_LP * P * (1 - E_RBV_endo)
+          - k_PLT_loss * PLT              + k_LC * (C_pro/C_ref)
+          - k_PLT_cons * P * PLT          + k_Lfluid * fluid_leak
+                                          - d_L_recovered * L
+
+PK/PD
+  Ribavirin   1-compartment IV, sigmoidal Emax on viral production,
+              plus immunomodulatory and endothelial-protective terms
+  Favipiravir gut -> plasma -> intracellular RTP, sigmoidal Emax on RTP
 ```
+
+The full equation set, with every term and all parameter definitions, is in the
+supplementary material. The block above is a summary, not a substitute.
 
 ### State Variables (23 compartments)
 
@@ -52,10 +55,10 @@ treatment with **Ribavirin** and **Favipiravir**.
 | F_II | Type II IFN (IFN-γ, pro-inflammatory) | AU |
 | C_pro | Pro-inflammatory cytokine burden | AU |
 | C_anti | Anti-inflammatory cytokine burden (IL-10-like) | AU |
-| P | Vascular permeability index | 0–1 |
+| P | Vascular permeability index | AU (~291 at the placebo peak) |
 | PLT | Platelet count | /μL |
-| K | Renal injury index | 0–1 |
-| L | Lung injury index | 0–1 |
+| K | Renal injury index | AU (~53 at the placebo peak) |
+| L | Lung injury index | AU (~183 at the placebo peak) |
 | CD8_N | CD8+ naive/primed T cells | AU |
 | CD8_E | CD8+ effector T cells | AU |
 | CD4 | CD4+ helper T cells | AU |
@@ -95,7 +98,10 @@ Key features:
 
 - **Dialysis probability**: sigmoidal function of renal injury K
 - **ECMO probability**: sigmoidal function of lung injury L
-- **Mortality probability**: capped composite of dialysis risk, ECMO risk, and cytokine burden
+- **Mortality probability**: syndrome-weighted composite of peak renal, lung and
+  cytokine risk blended 70/30 with the corresponding area-under-curve terms.
+  It does **not** reuse the dialysis or ECMO risks: those have used separate,
+  decoupled half-saturation constants since the 2026-06-03 recalibration.
 
 ## Project Structure
 

@@ -74,32 +74,60 @@ for (arm in arms) {
     )
 
     if (is.null(sim_out)) {
-      cat("FAILED\n")
+      # Record the failure as a visible NA row rather than dropping it. A
+      # dropped row silently shrinks the results table (six of twenty-four rows
+      # vanished the first time the solver-truncation check was added), which is
+      # indistinguishable from a scenario that was never run.
+      cat("FAILED (solver returned an incomplete trajectory)\n")
+      results <- rbind(results, data.frame(
+        arm            = arm,
+        pep_day        = pep_day,
+        V_peak         = NA_real_,
+        V_AUC          = NA_real_,
+        K_peak         = NA_real_,
+        L_peak         = NA_real_,
+        PLT_nadir      = NA_real_,
+        C_pro_peak     = NA_real_,
+        mortality_prob = NA_real_,
+        dialysis_prob  = NA_real_,
+        ecmo_prob      = NA_real_,
+        established    = NA,
+        time_clearance = NA_real_,
+        stringsAsFactors = FALSE
+      ))
       next
     }
 
     # Extract endpoints
-    V_peak     <- max(sim_out$V, na.rm = TRUE)
-    V_AUC      <- sum(sim_out$V * 0.1, na.rm = TRUE)  # trapezoidal with dt=0.1
-    K_peak     <- max(sim_out$K, na.rm = TRUE)
-    L_peak     <- max(sim_out$L, na.rm = TRUE)
-    PLT_nadir  <- min(sim_out$PLT, na.rm = TRUE)
-    C_pro_peak <- max(sim_out$C_pro, na.rm = TRUE)
+    V_peak     <- max(sim_out$V)
+    # Trapezoidal integration on the ACTUAL time vector. The output grid is not
+    # uniform: dose times are merged into it, so a fixed-width rectangle sum
+    # (sum(V * 0.1)) over-counted drug-containing arms by up to 32% while
+    # leaving placebo untouched -- an arm-dependent bias. Use the shared helper.
+    V_AUC      <- compute_viral_AUC(sim_out)
+    K_peak     <- max(sim_out$K)
+    L_peak     <- max(sim_out$L)
+    PLT_nadir  <- min(sim_out$PLT)
+    C_pro_peak <- max(sim_out$C_pro)
 
-    # Mortality probability from organ injury
-    # (same logic as extract_endpoints_from_simulation)
-    mort_K <- 1 / (1 + exp(-(K_peak - 100) / 20))
-    mort_L <- 1 / (1 + exp(-(L_peak - 300) / 60))
-    mortality_prob <- max(mort_K, mort_L)
-
-    dialysis_prob <- 1 / (1 + exp(-(K_peak - 80) / 15))
-    ecmo_prob     <- 1 / (1 + exp(-(L_peak - 250) / 50))
+    # Clinical endpoints come from the SINGLE canonical implementation in
+    # R/pd_models.R. This script previously re-implemented them as a pair of
+    # logistic functions of peak injury (breakpoints K=100, L=300), which is a
+    # different model: it understated dialysis risk ~3-fold and, for arms where
+    # infection was prevented (K ~ 0), returned a ~0.7% floor instead of ~0,
+    # flattening the whole post-exposure gradient.
+    endpoints      <- extract_endpoints_from_simulation(sim_out, pars,
+                                                        syndrome = "HFRS")
+    mortality_prob <- endpoints$mortality_prob
+    dialysis_prob  <- endpoints$dialysis_prob
+    ecmo_prob      <- endpoints$ecmo_prob
 
     # Disease establishment
     established <- V_peak > V_ESTABLISH_THRESHOLD
 
     # Time to clearance (V < 100 copies/mL after peak)
-    clearance_idx <- which(sim_out$V < 100 & sim_out$time > 5)
+    clearance_idx <- which(sim_out$V < 100 &
+                             sim_out$time > pars$symptom_onset_day)
     time_clearance <- if (length(clearance_idx) > 0 && established) {
       sim_out$time[min(clearance_idx)]
     } else if (!established) {

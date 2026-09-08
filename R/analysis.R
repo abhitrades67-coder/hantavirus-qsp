@@ -259,8 +259,11 @@ plot_pk_profiles <- function(sim_data,
     ggplot2::scale_colour_manual(values = arm_colors)
 
   # Combine
-  gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
-  ggsave_safe(outfile, width = 10, height = 12, dpi = 300)
+  # grid.arrange() draws to the device and returns nothing ggsave can use, so a
+  # bare ggsave() here silently saved last_plot() (= p3) and the figure shipped
+  # with only its third panel. arrangeGrob() returns the grob; pass it explicitly.
+  g <- gridExtra::arrangeGrob(p1, p2, p3, ncol = 1)
+  ggsave_safe(outfile, plot = g, width = 10, height = 12, dpi = 300)
   message(sprintf("Saved: %s", outfile))
 }
 
@@ -371,8 +374,9 @@ plot_window_sensitivity <- function(window_data,
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 0))
 
   # Combine panels using grid
-  gridExtra::grid.arrange(p1, p2, p3, ncol = 1, heights = c(1, 1, 1))
-  ggsave_safe(outfile, width = 10, height = 14, dpi = 300)
+  # See note in plot_pk_profiles(): grid.arrange + bare ggsave loses panels A and B.
+  g <- gridExtra::arrangeGrob(p1, p2, p3, ncol = 1, heights = c(1, 1, 1))
+  ggsave_safe(outfile, plot = g, width = 10, height = 14, dpi = 300)
   message(sprintf("Saved: %s", outfile))
 }
 
@@ -546,7 +550,6 @@ write_simulation_summary <- function(trial_output, window_data,
   }
 
   lines <- c(lines, "")
-  lines <- c(lines, "String concatenation helper: %s% <- function(a, b) paste0(a, b)")
   lines <- c(lines, "=" %s+% paste(rep("=", 59), collapse = ""))
 
   dir.create(dirname(outfile), showWarnings = FALSE, recursive = TRUE)

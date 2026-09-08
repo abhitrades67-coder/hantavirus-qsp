@@ -53,17 +53,19 @@ bliss_combination <- function(E1, E2) {
 #' @return Combined effect with synergy
 #' @export
 synergy_combination <- function(E1, E2, psi = 0.1) {
-  E_bliss <- bliss_combination(E1, E2)
-  psi_term <- psi * E1 * E2
-  min(E_bliss + psi_term, 1.0)
+  # MUST match the rule applied to viral production in hantavirus_qsp_ode():
+  # 1 - (1-E1)(1-E2)(1-psi*E1*E2). This previously returned E_Bliss + psi*E1*E2,
+  # a different and larger quantity, so the helper disagreed with the model it
+  # was meant to describe. The ODE is authoritative.
+  min(1 - (1 - E1) * (1 - E2) * (1 - psi * E1 * E2), 1.0)
 }
 
 #' Compute clinical endpoint probabilities
 #'
-#' @param K Renal injury index (0-1 scale)
-#' @param L Lung injury index (0-1 scale)
+#' @param K Renal injury index (arbitrary units; ~53 at the placebo peak, cf. K50 = 30)
+#' @param L Lung injury index (arbitrary units; ~183 at the placebo peak, cf. L50 = 100)
 #' @param C_pro Pro-inflammatory cytokine burden
-#' @param C_pro_max Maximum cytokine burden observed
+#' @param C_pro_max Currently unused; retained for call-site compatibility
 #' @param K_auc AUC of renal injury (day*AU, default 0)
 #' @param L_auc AUC of lung injury (day*AU, default 0)
 #' @param C_auc AUC of pro-inflammatory cytokines (day*AU, default 0)

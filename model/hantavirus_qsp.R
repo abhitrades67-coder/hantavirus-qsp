@@ -84,11 +84,13 @@ hantavirus_qsp_ode <- function(t, y, pars) {
     # 1. High I (bulk infection): mass-action killing (delta_CD8 * CD8_E * I)
     # 2. Low I (residual infection): CTLs scan tissue and kill individual
     #    infected cells at a per-cell rate proportional to CD8_E density.
-    #    This first-order regime is critical for clearing the last infected
-    #    cells when mass-action killing becomes ineffective.
-    #    At CD8_E=50, first-order rate = 5.0/day — each infected cell has
-    #    99.3% probability of being cleared per day, sufficient for sterilizing
-    #    clearance within ~2 days once I drops below 200 cells.
+    #    This regime is what clears the last infected cells when mass-action
+    #    killing becomes ineffective.
+    #    CAUTION: both branches are proportional to CD8_E * I, so this is NOT
+    #    a switch between two functional forms - it is a single rate constant
+    #    that rises from delta_CD8 (high I) to 5.0 (low I) as I falls.
+    #    The per-cell clearance rate is 5.0 * CD8_E per day, so at CD8_E = 50
+    #    it is 250/day, not 5.0/day as an earlier version of this comment said.
     CD8_mass_action <- delta_CD8 * CD8_E * I
     CD8_first_order_rate <- 5.0 * CD8_E  # /day per infected cell (very strong for sterilizing clearance)
     # Smooth transition: mass-action dominates when I > 200 cells,
@@ -168,9 +170,8 @@ hantavirus_qsp_ode <- function(t, y, pars) {
     # Delayed onset (~day 5-7), peak ~day 14 (PMID: 19072554, 17641066)
     CD4_act_I <- if (I > 0) k_CD4_I * I / (K_CD4_I + I) else 0
     CD4_act_F <- if (F_I > 0) k_CD4_F * F_I / (K_CD4_F + F_I) else 0
-    # Memory cell floor: once CD4 reaches peak, 10% persists as memory
-    # (PMID: 15110529 — memory CD4+ T cells survive for years)
-    CD4_mem_floor <- if (!exists("CD4_mem_floor")) 0 else CD4_mem_floor
+    # NOTE: a CD4 memory floor was computed here and never used in dCD4. The
+    # dead assignment has been removed; CD4 decays as a pure effector pool.
     dCD4 <- CD4_act_I + CD4_act_F - d_CD4 * CD4
 
     # CD8+ cytotoxic T cells: DELAYED activation via maturation chain
