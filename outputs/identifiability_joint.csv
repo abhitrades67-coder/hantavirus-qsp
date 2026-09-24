@@ -1,0 +1,14 @@
+"quantity","value"
+"ci_lower_pct",3.83539065417276
+"ci_upper_pct",18.2893526556264
+"n_designs",1000
+"n_established",817
+"n_consistent",811
+"n_rejected",6
+"rrr_min",7.99379163479491
+"rrr_p05",21.2360913271714
+"rrr_q1",44.985681453833
+"rrr_median",76.2145459015791
+"rrr_q3",97.1221500429097
+"rrr_p95",99.8457104512929
+"rrr_max",99.9361870264418

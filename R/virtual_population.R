@@ -8,6 +8,18 @@ NULL
 
 #' Truncated normal sampler
 #'
+#' Genuine truncation by inverse transform: a uniform draw is taken on the
+#' probability scale BETWEEN the bounds and mapped back through qnorm(). The
+#' previous implementation clamped rnorm() draws with pmax()/pmin(), which does
+#' not truncate: it piles the tail probability onto the bounds themselves
+#' (in the archived population this produced 39 patients aged exactly 18.000,
+#' 9 aged exactly 80.000 and 15 with V0 exactly 10.0).
+#'
+#' Named `rtnorm_bounded` rather than `rtruncnorm` because the CRAN truncnorm
+#' package exports `rtruncnorm(n, a, b, mean, sd)` with a DIFFERENT argument
+#' order; if that package were ever attached it would silently shadow this
+#' helper and misparameterise every call.
+#'
 #' @param n Number of samples
 #' @param mean Mean of normal distribution
 #' @param sd Standard deviation
@@ -15,14 +27,17 @@ NULL
 #' @param upper Upper bound
 #' @return Vector of n samples
 #' @export
-rtruncnorm <- function(n, mean, sd, lower = -Inf, upper = Inf) {
-  samples <- rnorm(n, mean, sd)
-  samples <- pmax(samples, lower)
-  samples <- pmin(samples, upper)
-  samples
+rtnorm_bounded <- function(n, mean, sd, lower = -Inf, upper = Inf) {
+  p_lo <- pnorm(lower, mean, sd)
+  p_hi <- pnorm(upper, mean, sd)
+  qnorm(runif(n, p_lo, p_hi), mean, sd)
 }
 
 #' Truncated log-normal sampler
+#'
+#' Genuine truncation by inverse transform on the log scale (see
+#' [rtnorm_bounded()] for why clamping was replaced and why the helper was
+#' renamed away from `rtrunclnorm`).
 #'
 #' @param n Number of samples
 #' @param meanlog Mean of log-scale (mu)
@@ -31,16 +46,21 @@ rtruncnorm <- function(n, mean, sd, lower = -Inf, upper = Inf) {
 #' @param upper Upper bound
 #' @return Vector of n samples
 #' @export
-rtrunclnorm <- function(n, meanlog, sdlog, lower = -Inf, upper = Inf) {
-  samples <- rlnorm(n, meanlog, sdlog)
-  samples <- pmax(samples, lower)
-  samples <- pmin(samples, upper)
-  samples
+rtlnorm_bounded <- function(n, meanlog, sdlog, lower = -Inf, upper = Inf) {
+  log_lo <- if (lower <= 0) -Inf else log(lower)
+  log_hi <- if (is.infinite(upper)) Inf else log(upper)
+  p_lo <- pnorm(log_lo, meanlog, sdlog)
+  p_hi <- pnorm(log_hi, meanlog, sdlog)
+  exp(qnorm(runif(n, p_lo, p_hi), meanlog, sdlog))
 }
 
 #' Generate virtual population
 #'
-#' Creates N virtual patients with correlated covariates.
+#' Creates N virtual patients. All nine covariates are drawn INDEPENDENTLY;
+#' no correlation structure is imposed.
+#'
+#' Known simplification: age and eGFR are physiologically correlated (eGFR
+#' declines with age), and drawing them independently ignores that.
 #'
 #' Covariates:
 #'   - Age: Normal(45, 15), truncated [18, 80]
@@ -52,7 +72,7 @@ rtrunclnorm <- function(n, meanlog, sdlog, lower = -Inf, upper = Inf) {
 #'   - Endothelial sensitivity: LogNormal(0, 0.3)
 #'   - Adaptive immune strength: LogNormal(0, 0.3)
 #'   - Baseline PLT: Normal(250000, 50000), truncated [100000, 400000]
-#'   - Syndrome phenotype: 60% HFRS-like, 40% HCPS/HPS-like
+#'   - Syndrome phenotype: HFRS (this analysis is HFRS-only)
 #'
 #' @param N Number of virtual patients (default 1000)
 #' @param seed Random seed for reproducibility
@@ -63,21 +83,25 @@ generate_virtual_population <- function(N = 1000, seed = 42) {
 
   pop <- data.frame(
     patient_id       = seq_len(N),
-    age_years        = rtruncnorm(N, mean = 45, sd = 15, lower = 18, upper = 80),
-    body_weight_kg   = rtruncnorm(N, mean = 75, sd = 12, lower = 40, upper = 120),
-    eGFR_mL_min      = rtruncnorm(N, mean = 90, sd = 25, lower = 15, upper = 150),
+    age_years        = rtnorm_bounded(N, mean = 45, sd = 15, lower = 18, upper = 80),
+    body_weight_kg   = rtnorm_bounded(N, mean = 75, sd = 12, lower = 40, upper = 120),
+    eGFR_mL_min      = rtnorm_bounded(N, mean = 90, sd = 25, lower = 15, upper = 150),
     time_to_treatment_days = runif(N, min = 1, max = 7),
-    V0_copies_mL     = rtrunclnorm(N, meanlog = log(100), sdlog = 1,
+    V0_copies_mL     = rtlnorm_bounded(N, meanlog = log(100), sdlog = 1,
                                     lower = 10, upper = 10000),
-    immune_strength  = rtrunclnorm(N, meanlog = 0, sdlog = 0.3,
+    immune_strength  = rtlnorm_bounded(N, meanlog = 0, sdlog = 0.3,
                                     lower = 0.1, upper = 5),
-    endothelial_sensitivity = rtrunclnorm(N, meanlog = 0, sdlog = 0.3,
+    endothelial_sensitivity = rtlnorm_bounded(N, meanlog = 0, sdlog = 0.3,
                                            lower = 0.1, upper = 5),
-    adaptive_strength = rtrunclnorm(N, meanlog = 0, sdlog = 0.3,
+    adaptive_strength = rtlnorm_bounded(N, meanlog = 0, sdlog = 0.3,
                                      lower = 0.1, upper = 5),
-    PLT0_baseline    = rtruncnorm(N, mean = 250000, sd = 50000,
+    PLT0_baseline    = rtnorm_bounded(N, mean = 250000, sd = 50000,
                                    lower = 100000, upper = 400000),
-    syndrome         = ifelse(runif(N) < 0.6, "HFRS", "HCPS"),
+    # HFRS only. The lung-weighted HCPS mapping was never calibrated to its
+    # intended ~40% placebo mortality and is not reported, so it has been
+    # removed rather than shipped uncalibrated. This was the last draw in the
+    # frame, so removing its runif() leaves every other covariate unchanged.
+    syndrome         = rep("HFRS", N),
     stringsAsFactors = FALSE
   )
 

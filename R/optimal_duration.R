@@ -20,7 +20,7 @@ pars <- get_parameters()
 durations <- c(5, 7, 10, 14, 21, 28)
 
 # Use representative patient (median V0, average immune strength)
-row <- pop[10, ]  # V0=76, HFRS
+row <- pop[10, ]  # representative patient; syndrome and V0 are printed below
 pars_i <- apply_vpop_to_model(row, pars)
 
 cat(sprintf("Representative patient: %s, V0=%.0f, immune_str=%.2f\n\n",
@@ -55,8 +55,15 @@ for (arm in c("ribavirin", "favipiravir", "combination")) {
       source("R/pk_models.R")
       source("R/pd_models.R")
       
+      # Time origin is SYMPTOM ONSET, matching every other therapeutic script.
+      # This previously used build_initial_state(), the INFECTION-time state,
+      # while still hardcoding start_day = 3; with symptom_onset_day = 5 that
+      # dosed 2 days BEFORE symptom onset, making this an early-prophylaxis
+      # study mislabelled as a treatment-duration study.
+      # NOTE: endpoints here use a 60-day window and are therefore NOT
+      # comparable to the 21-day virtual-trial numbers.
       times <- seq(0, 60, by = 0.1)
-      y0 <- build_initial_state(pars_i)
+      y0 <- build_symptom_onset_state(pars_i)
       
       all_events <- data.frame(
         time = numeric(), var = character(),
@@ -67,7 +74,8 @@ for (arm in c("ribavirin", "favipiravir", "combination")) {
       if (arm %in% c("ribavirin", "combination")) {
         rbv_sched <- ribavirin_dosing_schedule(
           body_weight_kg = 75,
-          start_day = 3
+          start_day = 3,
+          duration_days = dur
         )
         rbv_events <- build_deSolve_events(
           rbv_sched, "C_RBV",
@@ -82,7 +90,8 @@ for (arm in c("ribavirin", "favipiravir", "combination")) {
       if (arm %in% c("favipiravir", "combination")) {
         fav_sched <- favipiravir_dosing_schedule(
           regimen = "standard",
-          start_day = 3
+          start_day = 3,
+          duration_days = dur
         )
         fav_events <- build_deSolve_events(
           fav_sched, "C_FAV_gut",
@@ -125,8 +134,8 @@ for (arm in c("ribavirin", "favipiravir", "combination")) {
     # Rebound: V at day 60 > V at stop by more than 2x
     rebound <- V_60 > V_stop * 2
     
-    CD8_stop <- sim$CD8[idx_stop]
-    CD8_max  <- max(sim$CD8)
+    CD8_stop <- sim$CD8_E[idx_stop]
+    CD8_max  <- max(sim$CD8_E)
     IgG_stop <- sim$IgG[idx_stop]
     IgG_max  <- max(sim$IgG)
     

@@ -50,9 +50,12 @@ ribavirin_dosing_schedule <- function(dose_mg = NULL,
     }
   }
 
-  # Phase 2: 8 mg/kg q8h (3 times/day) for days 5-10
+  # Phase 2: 8 mg/kg q8h (3 times/day) from day 5 to the end of the course.
+  # The loop bound is derived from duration_days so a longer course actually
+  # emits more doses; at the default duration_days = 10 this is 4:9 exactly as
+  # before, so existing results are unchanged.
   dose_phase2 <- 8 * body_weight_kg
-  for (day in 4:9) {
+  for (day in seq.int(4, max(4, duration_days - 1))) {
     for (hour in c(8, 16, 24)) {
       t <- start_day + day + hour / 24
       if (t <= start_day + duration_days) {
@@ -75,10 +78,12 @@ ribavirin_dosing_schedule <- function(dose_mg = NULL,
 #'
 #' @param regimen "standard" or "high"
 #' @param start_day Day of treatment initiation
+#' @param duration_days Total course length in days (default 15)
 #' @return Data frame with columns: time (days), dose_mg, route
 #' @export
 favipiravir_dosing_schedule <- function(regimen = "standard",
-                                         start_day = 3) {
+                                         start_day = 3,
+                                         duration_days = 15) {
   if (regimen == "standard") {
     dose_day1 <- 1600
     dose_maint <- 600
@@ -103,8 +108,9 @@ favipiravir_dosing_schedule <- function(regimen = "standard",
     ))
   }
 
-  # Days 2-15: maintenance BID
-  for (day in 1:14) {
+  # Days 2 onward: maintenance BID, to the end of the course. At the default
+  # duration_days = 15 this is 1:14 exactly as before.
+  for (day in seq_len(max(1, duration_days - 1))) {
     for (hour in c(0, 12)) {
       events <- rbind(events, data.frame(
         time = start_day + day + hour / 24, dose_mg = dose_maint, route = "PO"

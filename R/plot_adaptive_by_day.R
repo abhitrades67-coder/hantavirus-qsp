@@ -117,10 +117,10 @@ long_data <- tidyr::pivot_longer(
 
 long_data$compartment <- factor(long_data$compartment,
   levels = c("CD8_E", "CD4", "IgM", "IgG"),
-  labels = c(expression("CD8"^"+"~"effector T cells"),
-             expression("CD4"^"+"~"helper T cells"),
-             expression("IgM antibodies"),
-             expression("IgG antibodies")))
+  labels = c("CD8+ effector T cells",
+             "CD4+ helper T cells",
+             "IgM antibodies",
+             "IgG antibodies"))
 
 arm_colors <- c(
   placebo      = "#757575",

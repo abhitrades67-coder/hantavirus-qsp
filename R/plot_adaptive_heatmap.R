@@ -34,7 +34,10 @@ if (file.exists(cache_path)) {
   arms <- c("ribavirin", "favipiravir", "combination")
   t_end <- 21
   dt <- 0.5
-  n_patients <- 10
+  # One representative patient at nominal parameter values. Earlier
+  # versions ran ten identical copies of it and described them as ten
+  # patients, which made every spread statistic structurally zero.
+  n_patients <- 1
 
   cat("Running adaptive immunity simulations for heatmap...\n")
   cat(sprintf("  %d patients x %d arms x %d days = %d simulations\n",
@@ -131,8 +134,9 @@ heat_data$compartment <- factor(heat_data$compartment,
 # Above 100% = immune preservation (blue), Below 100% = immune suppression (red)
 max_pct <- max(heat_data$pct_of_placebo, na.rm = TRUE)
 min_pct <- min(heat_data$pct_of_placebo, na.rm = TRUE)
-# Symmetric midpoint around 100
-lim <- max(abs(c(max_pct - 100, 100 - min_pct)), 5)
+# Asymmetric limits about the midpoint (see the note in plot_organ_heatmap.R).
+fill_lo <- min(min_pct, 95)
+fill_hi <- max(max_pct, 105)
 
 cat(sprintf("  Pct of placebo range: %.0f%% – %.0f%%\n", min_pct, max_pct))
 
@@ -148,8 +152,11 @@ p <- ggplot(heat_data,
     mid      = "#f7f7f7",   # white: at placebo level
     high     = "#4575b4",   # blue: immune preservation above placebo
     midpoint = 100,
-    limits   = c(100 - lim, 100 + lim),
-    name     = "% of placebo\npeak response",
+    limits   = c(fill_lo, fill_hi),
+    # NOTE: the colour direction here is the OPPOSITE of Figure 3 -- in this figure
+    # blue means ABOVE placebo (response preserved). Say so, or a reader
+    # comparing the two adjacent heatmaps will misread this one.
+    name     = "% of placebo\npeak response\n(blue = above placebo)",
     guide    = guide_colourbar(barwidth = 1.2, barheight = 12)
   ) +
   labs(

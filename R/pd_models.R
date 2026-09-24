@@ -53,44 +53,42 @@ bliss_combination <- function(E1, E2) {
 #' @return Combined effect with synergy
 #' @export
 synergy_combination <- function(E1, E2, psi = 0.1) {
-  E_bliss <- bliss_combination(E1, E2)
-  psi_term <- psi * E1 * E2
-  min(E_bliss + psi_term, 1.0)
+  # MUST match the rule applied to viral production in hantavirus_qsp_ode():
+  # 1 - (1-E1)(1-E2)(1-psi*E1*E2). This previously returned E_Bliss + psi*E1*E2,
+  # a different and larger quantity, so the helper disagreed with the model it
+  # was meant to describe. The ODE is authoritative.
+  min(1 - (1 - E1) * (1 - E2) * (1 - psi * E1 * E2), 1.0)
 }
 
 #' Compute clinical endpoint probabilities
 #'
-#' @param K Renal injury index (0-1 scale)
-#' @param L Lung injury index (0-1 scale)
+#' @param K Renal injury index (arbitrary units; ~53 at the placebo peak, cf. K50 = 30)
+#' @param L Lung injury index (arbitrary units; ~183 at the placebo peak, cf. L50 = 100)
 #' @param C_pro Pro-inflammatory cytokine burden
-#' @param C_pro_max Maximum cytokine burden observed
+#' @param C_pro_max Currently unused; retained for call-site compatibility
 #' @param K_auc AUC of renal injury (day*AU, default 0)
 #' @param L_auc AUC of lung injury (day*AU, default 0)
 #' @param C_auc AUC of pro-inflammatory cytokines (day*AU, default 0)
-#' @param syndrome Syndrome phenotype: "HFRS" or "HCPS"
+#' @param syndrome Retained for call-site compatibility. This analysis is
+#'   restricted to HFRS; any other value is an error rather than a silent
+#'   fall-through to a mapping the study does not calibrate or report.
 #' @param pars Parameter list with threshold and weight parameters
 #' @return Named list: dialysis_prob, ecmo_prob, mortality_prob
 #' @export
-compute_clinical_endpoints <- function(K, L, C_pro, C_pro_max, syndrome, pars,
-                                        K_auc = 0, L_auc = 0, C_auc = 0) {
+compute_clinical_endpoints <- function(K, L, C_pro, C_pro_max, syndrome = "HFRS",
+                                        pars, K_auc = 0, L_auc = 0, C_auc = 0) {
+  if (!identical(syndrome, "HFRS")) {
+    stop("This model is calibrated and reported for HFRS only; got syndrome = '",
+         syndrome, "'.")
+  }
   w_auc <- if ("w_auc" %in% names(pars)) pars$w_auc else 0.30
 
-  if (syndrome == "HFRS") {
-    renal_risk    <- pars$w_K_HFRS * K / (K + pars$K50)
-    lung_risk     <- pars$w_L_HFRS * L / (L + pars$L50)
-    cytokine_risk <- pars$w_C_HFRS * C_pro / (C_pro + pars$C50)
-    renal_auc    <- pars$w_K_HFRS * K_auc / (K_auc + pars$K_auc50)
-    lung_auc     <- pars$w_L_HFRS * L_auc / (L_auc + pars$L_auc50)
-    cytokine_auc <- pars$w_C_HFRS * C_auc / (C_auc + pars$C_auc50)
-  } else {
-    # HCPS: lung-predominant
-    renal_risk    <- pars$w_K_HCPS * K / (K + pars$K50)
-    lung_risk     <- pars$w_L_HCPS * L / (L + pars$L50)
-    cytokine_risk <- pars$w_C_HCPS * C_pro / (C_pro + pars$C50)
-    renal_auc    <- pars$w_K_HCPS * K_auc / (K_auc + pars$K_auc50)
-    lung_auc     <- pars$w_L_HCPS * L_auc / (L_auc + pars$L_auc50)
-    cytokine_auc <- pars$w_C_HCPS * C_auc / (C_auc + pars$C_auc50)
-  }
+  renal_risk    <- pars$w_K_HFRS * K / (K + pars$K50)
+  lung_risk     <- pars$w_L_HFRS * L / (L + pars$L50)
+  cytokine_risk <- pars$w_C_HFRS * C_pro / (C_pro + pars$C50)
+  renal_auc     <- pars$w_K_HFRS * K_auc / (K_auc + pars$K_auc50)
+  lung_auc      <- pars$w_L_HFRS * L_auc / (L_auc + pars$L_auc50)
+  cytokine_auc  <- pars$w_C_HFRS * C_auc / (C_auc + pars$C_auc50)
 
   peak_component  <- min(renal_risk + lung_risk + cytokine_risk, 1)
   auc_component   <- min(renal_auc + lung_auc + cytokine_auc, 1)

@@ -1,36 +1,50 @@
 GLOBAL SENSITIVITY ANALYSIS (LHS + PRCC)
-Date: 2026-06-04 | N=1000 | parameters=32
+Date: 2026-09-24 | N=1000 | parameters=32
 
-Day-1 combination RRR: median=77.5%  IQR=[45.1, 97.2]%  (5th pct=21.2%)
-Placebo mortality: median=9.2%  IQR=[6.3, 10.8]%
+DESIGN CONDITIONING
+  n_total (LHS designs):        1000
+  n_valid (placebo sim solved): 1000
+  n_established (placebo mortality > 1e-04): 817 (81.7%)
+  excluded (never established): 183 (18.3%)
+  NOTE: RRR is undefined when the infection never establishes, so ALL RRR
+  statistics below are CONDITIONAL on establishment (n_established).
+
+Day-1 combination RRR [CONDITIONAL on establishment, n=817]: median=76.9%  IQR=[45.1, 97.2]%  (5th pct=21.2%)
+Placebo mortality [ALL designs, n=1000]: median=9.2%  IQR=[6.3, 10.8]%
+Placebo mortality [ESTABLISHING subset only, n=817]: median=9.8%  IQR=[8.2, 11.1]%
+
+Significance is based on Benjamini-Hochberg adjusted p-values (p_adj < 0.05),
+computed within each outcome. Drug parameters are excluded from the
+placebo-arm outcomes because they cannot act in the placebo arm.
 
 --- Top PRCC drivers: Placebo mortality ---
-  p              PRCC=+0.788 *
-  k_PV           PRCC=+0.593 *
-  c              PRCC=-0.568 *
-  k_KP           PRCC=+0.529 *
-  beta           PRCC=+0.435 *
-  d_P            PRCC=-0.411 *
-  d_K            PRCC=-0.403 *
-  delta_natural  PRCC=-0.176 *
+  p              PRCC=+0.789  p_adj=3.38e-207 *
+  k_PV           PRCC=+0.594  p_adj=2.62e-93 *
+  c              PRCC=-0.569  p_adj=4.47e-84 *
+  k_KP           PRCC=+0.531  p_adj=2.1e-71 *
+  beta           PRCC=+0.438  p_adj=2.86e-46 *
+  d_P            PRCC=-0.408  p_adj=8.56e-40 *
+  d_K            PRCC=-0.404  p_adj=4.58e-39 *
+  delta_natural  PRCC=-0.175  p_adj=1.08e-07 *
 
 --- Top PRCC drivers: Day-1 combination RRR ---
-  p              PRCC=-0.930 *
-  beta           PRCC=-0.926 *
-  c              PRCC=+0.688 *
-  k_PV           PRCC=-0.411 *
-  k_KP           PRCC=-0.320 *
-  d_K            PRCC=+0.104 *
-  EC50_FAV       PRCC=-0.103 *
-  Emax_RBV       PRCC=+0.087 *
+  p              PRCC=-0.933  p_adj=0 *
+  beta           PRCC=-0.930  p_adj=0 *
+  c              PRCC=+0.695  p_adj=2.13e-113 *
+  k_PV           PRCC=-0.409  p_adj=3.32e-32 *
+  k_KP           PRCC=-0.329  p_adj=1.75e-20 *
+  EC50_FAV       PRCC=-0.104  p_adj=0.0185 *
+  d_K            PRCC=+0.096  p_adj=0.032 *
 
 --- Top PRCC drivers: Peak viral load (placebo) ---
-  p              PRCC=+0.941 *
-  c              PRCC=-0.811 *
-  beta           PRCC=+0.382 *
-  delta_natural  PRCC=-0.164 *
-  delta_CD8      PRCC=-0.059 
-  I_gate         PRCC=+0.058 
-  Emax_RBV       PRCC=-0.051 
-  k_FI           PRCC=+0.049 
+  p              PRCC=+0.941  p_adj=0 *
+  c              PRCC=-0.812  p_adj=5.08e-229 *
+  beta           PRCC=+0.385  p_adj=7.02e-35 *
+  delta_natural  PRCC=-0.168  p_adj=8e-07 *
+
+--- Top partial rank point-biserial drivers (BINARY outcome, NOT a PRCC on a continuous outcome): Infection establishment (binary) ---
+  beta           rho_pb=+0.551  p_adj=2.33e-77 *
+  p              rho_pb=+0.510  p_adj=1.01e-64 *
+  c              rho_pb=-0.318  p_adj=1.5e-23 *
+  k_LP           rho_pb=+0.109  p_adj=0.00407 *
 

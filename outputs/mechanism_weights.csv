@@ -1,0 +1,12 @@
+"quantity","component","percent"
+"Mortality probability","Renal injury (peak and integral)",85.2515843508753
+"Mortality probability","Pulmonary injury",14.6579610395097
+"Mortality probability","Pro-inflammatory cytokines",0.0904546096149925
+"Infected-cell clearance","CD8+ killing",67.0500916259984
+"Infected-cell clearance","Natural turnover",32.9479931811251
+"Infected-cell clearance","NK-mediated",0.00191519287644681
+"Viral clearance","Non-specific (c)",99.8584060209269
+"Viral clearance","IgG neutralisation",0.0870445306117449
+"Viral clearance","IgM neutralisation",0.054549448461359
+"Type I interferon","Maximum suppression of viral production",0.000818446240295399
+"Cytokine auto-amplification","Fraction of capacity used",0.000354151011993583

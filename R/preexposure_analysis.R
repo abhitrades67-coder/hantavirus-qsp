@@ -74,32 +74,60 @@ for (arm in arms) {
     )
 
     if (is.null(sim_out)) {
-      cat("FAILED\n")
+      # Record the failure as a visible NA row rather than dropping it. A
+      # dropped row silently shrinks the results table (six of twenty-four rows
+      # vanished the first time the solver-truncation check was added), which is
+      # indistinguishable from a scenario that was never run.
+      cat("FAILED (solver returned an incomplete trajectory)\n")
+      results <- rbind(results, data.frame(
+        arm            = arm,
+        pep_day        = pep_day,
+        V_peak         = NA_real_,
+        V_AUC          = NA_real_,
+        K_peak         = NA_real_,
+        L_peak         = NA_real_,
+        PLT_nadir      = NA_real_,
+        C_pro_peak     = NA_real_,
+        mortality_prob = NA_real_,
+        dialysis_prob  = NA_real_,
+        ecmo_prob      = NA_real_,
+        established    = NA,
+        time_clearance = NA_real_,
+        stringsAsFactors = FALSE
+      ))
       next
     }
 
     # Extract endpoints
-    V_peak     <- max(sim_out$V, na.rm = TRUE)
-    V_AUC      <- sum(sim_out$V * 0.1, na.rm = TRUE)  # trapezoidal with dt=0.1
-    K_peak     <- max(sim_out$K, na.rm = TRUE)
-    L_peak     <- max(sim_out$L, na.rm = TRUE)
-    PLT_nadir  <- min(sim_out$PLT, na.rm = TRUE)
-    C_pro_peak <- max(sim_out$C_pro, na.rm = TRUE)
+    V_peak     <- max(sim_out$V)
+    # Trapezoidal integration on the ACTUAL time vector. The output grid is not
+    # uniform: dose times are merged into it, so a fixed-width rectangle sum
+    # (sum(V * 0.1)) over-counted drug-containing arms by up to 32% while
+    # leaving placebo untouched -- an arm-dependent bias. Use the shared helper.
+    V_AUC      <- compute_viral_AUC(sim_out)
+    K_peak     <- max(sim_out$K)
+    L_peak     <- max(sim_out$L)
+    PLT_nadir  <- min(sim_out$PLT)
+    C_pro_peak <- max(sim_out$C_pro)
 
-    # Mortality probability from organ injury
-    # (same logic as extract_endpoints_from_simulation)
-    mort_K <- 1 / (1 + exp(-(K_peak - 100) / 20))
-    mort_L <- 1 / (1 + exp(-(L_peak - 300) / 60))
-    mortality_prob <- max(mort_K, mort_L)
-
-    dialysis_prob <- 1 / (1 + exp(-(K_peak - 80) / 15))
-    ecmo_prob     <- 1 / (1 + exp(-(L_peak - 250) / 50))
+    # Clinical endpoints come from the SINGLE canonical implementation in
+    # R/pd_models.R. This script previously re-implemented them as a pair of
+    # logistic functions of peak injury (breakpoints K=100, L=300), which is a
+    # different model: it understated dialysis risk ~3-fold and, for arms where
+    # infection was prevented (K ~ 0), returned a ~0.7% floor instead of ~0,
+    # flattening the whole post-exposure gradient.
+    endpoints      <- extract_endpoints_from_simulation(sim_out, pars,
+                                                        syndrome = "HFRS")
+    mortality_prob <- endpoints$mortality_prob
+    dialysis_prob  <- endpoints$dialysis_prob
+    ecmo_prob      <- endpoints$ecmo_prob
 
     # Disease establishment
     established <- V_peak > V_ESTABLISH_THRESHOLD
 
     # Time to clearance (V < 100 copies/mL after peak)
-    clearance_idx <- which(sim_out$V < 100 & sim_out$time > 5)
+    clearance_idx <- which(sim_out$V < 100 &
+                             sim_out$time > pars$symptom_onset_day)
     time_clearance <- if (length(clearance_idx) > 0 && established) {
       sim_out$time[min(clearance_idx)]
     } else if (!established) {
@@ -234,7 +262,79 @@ for (i in seq_len(nrow(prevention_table))) {
 }
 sink()
 
+# --- Figure: peak viral load by prophylaxis start day ------------------------
+# Cited as Supplementary Figure S5. No script in this repository previously
+# produced it, although it was included in the submitted supplement, so it could
+# neither be regenerated nor checked against the results table. It is built here
+# from the same `results` data frame that writes preexposure_results.csv, so the
+# figure and the table cannot disagree.
+suppressPackageStartupMessages({
+  library(ggplot2)
+})
+
+arm_colors <- c(
+  placebo     = "#757575",
+  ribavirin   = "#1f78b4",
+  favipiravir = "#E69F00",
+  combination = "#D55E00"
+)
+
+plot_dat <- results[!is.na(results$V_peak), ]
+plot_dat$arm <- factor(plot_dat$arm, levels = names(arm_colors))
+
+# Favipiravir and combination have IDENTICAL peak viral loads on days 0-4 --
+# favipiravir dominates the combination's antiviral effect until late -- so a
+# plain line plot hides one arm completely under the other. Distinct line types
+# keep both visible where they coincide.
+arm_ltypes <- c(placebo = "solid", ribavirin = "solid",
+                favipiravir = "solid", combination = "22")
+
+p_pep <- ggplot2::ggplot(plot_dat, ggplot2::aes(
+    x = pep_day, y = V_peak, colour = arm, group = arm)) +
+  ggplot2::geom_hline(yintercept = V_ESTABLISH_THRESHOLD, linetype = "dashed",
+                      colour = "grey30", linewidth = 0.6) +
+  ggplot2::annotate("text", x = 0, y = V_ESTABLISH_THRESHOLD * 1.7,
+                    label = "establishment threshold", hjust = 0, size = 3.4,
+                    colour = "grey30") +
+  ggplot2::geom_line(ggplot2::aes(linetype = arm), linewidth = 1.2) +
+  ggplot2::geom_point(ggplot2::aes(shape = arm), size = 2.8) +
+  ggplot2::scale_colour_manual(values = arm_colors, name = "Arm") +
+  ggplot2::scale_linetype_manual(values = arm_ltypes, name = "Arm") +
+  ggplot2::scale_shape_manual(values = c(placebo = 16, ribavirin = 16,
+                                         favipiravir = 16, combination = 17),
+                              name = "Arm") +
+  ggplot2::scale_x_continuous(breaks = pep_days) +
+  ggplot2::scale_y_log10() +
+  ggplot2::labs(
+    x = "Prophylaxis start day (days after exposure)",
+    y = expression("Peak viral load (copies " * ml^-1 * ")"),
+    title = "Post-exposure prophylaxis: peak viral load by start day",
+    subtitle = sprintf("%d of %d scenarios completed; symptom onset is model day 5",
+                       nrow(plot_dat), nrow(results))) +
+  ggplot2::theme_minimal(base_size = 13) +
+  ggplot2::theme(
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.border     = ggplot2::element_rect(fill = NA, colour = "grey80"),
+    legend.position  = "bottom",
+    axis.title       = ggplot2::element_text(face = "bold"),
+    plot.title       = ggplot2::element_text(face = "bold", hjust = 0.5)
+  )
+
+dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
+ggplot2::ggsave("outputs/preexposure_viral_peak.png", p_pep,
+                width = 8, height = 5.5, dpi = 300)
+
+n_missing <- sum(is.na(results$V_peak))
+if (n_missing > 0) {
+  warning(sprintf(
+    "%d of %d post-exposure scenarios did not complete; they are absent from the figure",
+    n_missing, nrow(results)))
+}
+
 cat("\n\nResults saved to:\n")
 cat("  outputs/preexposure_results.csv\n")
 cat("  outputs/preexposure_summary.txt\n")
+cat("  outputs/preexposure_viral_peak.png\n")
+cat(sprintf("\nScenarios completed: %d of %d\n",
+            sum(!is.na(results$V_peak)), nrow(results)))
 cat("\nDone.\n")

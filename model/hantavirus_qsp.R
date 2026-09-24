@@ -84,11 +84,13 @@ hantavirus_qsp_ode <- function(t, y, pars) {
     # 1. High I (bulk infection): mass-action killing (delta_CD8 * CD8_E * I)
     # 2. Low I (residual infection): CTLs scan tissue and kill individual
     #    infected cells at a per-cell rate proportional to CD8_E density.
-    #    This first-order regime is critical for clearing the last infected
-    #    cells when mass-action killing becomes ineffective.
-    #    At CD8_E=50, first-order rate = 5.0/day — each infected cell has
-    #    99.3% probability of being cleared per day, sufficient for sterilizing
-    #    clearance within ~2 days once I drops below 200 cells.
+    #    This regime is what clears the last infected cells when mass-action
+    #    killing becomes ineffective.
+    #    CAUTION: both branches are proportional to CD8_E * I, so this is NOT
+    #    a switch between two functional forms - it is a single rate constant
+    #    that rises from delta_CD8 (high I) to 5.0 (low I) as I falls.
+    #    The per-cell clearance rate is 5.0 * CD8_E per day, so at CD8_E = 50
+    #    it is 250/day, not 5.0/day as an earlier version of this comment said.
     CD8_mass_action <- delta_CD8 * CD8_E * I
     CD8_first_order_rate <- 5.0 * CD8_E  # /day per infected cell (very strong for sterilizing clearance)
     # Smooth transition: mass-action dominates when I > 200 cells,
@@ -168,9 +170,8 @@ hantavirus_qsp_ode <- function(t, y, pars) {
     # Delayed onset (~day 5-7), peak ~day 14 (PMID: 19072554, 17641066)
     CD4_act_I <- if (I > 0) k_CD4_I * I / (K_CD4_I + I) else 0
     CD4_act_F <- if (F_I > 0) k_CD4_F * F_I / (K_CD4_F + F_I) else 0
-    # Memory cell floor: once CD4 reaches peak, 10% persists as memory
-    # (PMID: 15110529 — memory CD4+ T cells survive for years)
-    CD4_mem_floor <- if (!exists("CD4_mem_floor")) 0 else CD4_mem_floor
+    # NOTE: a CD4 memory floor was computed here and never used in dCD4. The
+    # dead assignment has been removed; CD4 decays as a pure effector pool.
     dCD4 <- CD4_act_I + CD4_act_F - d_CD4 * CD4
 
     # CD8+ cytotoxic T cells: DELAYED activation via maturation chain
@@ -194,12 +195,25 @@ hantavirus_qsp_ode <- function(t, y, pars) {
     dCD8_N <- CD8_prime_I + CD8_prime_F - k_mat * CD8_N - d_CD8_N * CD8_N
 
     # Effector pool: receives matured cells from CD8_N
-    # Memory: reduced decay when CD8_E drops below 1 AU (t1/2 ~ months)
-    CD8_E_decay_eff <- if (CD8_E < 1) {
-      d_CD8_E * 0.1  # Memory half-life ~70 days vs 7 days for effectors
-    } else {
-      d_CD8_E
-    }
+    # Memory: reduced decay below the 1 AU threshold (memory half-life
+    # ~70 days vs ~7 days for effectors).
+    #
+    # The threshold is a steep Hill switch, not an if/else step. The step is an
+    # ATTRACTING discontinuity: below it the pool grows (decay 10x slower),
+    # above it shrinks, so whenever k_mat * CD8_N / CD8_E lies between
+    # 0.1 * d_CD8_E and d_CD8_E the trajectory is pinned at CD8_E = 1 and LSODA
+    # cannot step across it. That stalled 6 of the 24 post-exposure scenarios
+    # (ribavirin d0-d1, favipiravir d1-d2, combination d1-d2) at exactly this
+    # crossing; raising maxsteps ten-fold spent 10x the work at the same point.
+    # It bites when viral suppression keeps CD8_N small -- the early-treatment
+    # arms the PEP analysis depends on. The effector-to-memory transition is
+    # graded biologically, so smoothing it is the faithful repair rather than a
+    # workaround: at n_mem_switch = 50 the switch differs from the step by less
+    # than 1% of d_CD8_E outside CD8_E in [0.914, 1.094] (about +/-9% of the
+    # threshold), and every calibrated endpoint moves by <1e-5 relative
+    # (placebo mortality 0.09583902 -> 0.09583895).
+    mem_frac_CD8    <- if (CD8_E > 0) 1 / (1 + CD8_E^(-n_mem_switch)) else 0
+    CD8_E_decay_eff <- d_CD8_E * (0.1 + 0.9 * mem_frac_CD8)
     dCD8_E <- k_mat * CD8_N - CD8_E_decay_eff * CD8_E
 
     # IgM antibodies: early B cell response driven by antigen + CD4 help
@@ -214,12 +228,12 @@ hantavirus_qsp_ode <- function(t, y, pars) {
     # Memory B cells persist and rapidly reactivate (PMID: 18814258)
     IgG_switch <- if (IgM > 0) k_switch * IgM * CD4_help_B else 0
     IgG_direct <- if (I > 0) k_IgG_direct * I / (K_IgG + I) * CD4_help_B else 0
-    # Memory B cell floor: reduced decay at low IgG levels
-    IgG_decay_eff <- if (IgG < 1) {
-      d_IgG * 0.1  # Memory half-life ~210 days vs 21 days for plasma cells
-    } else {
-      d_IgG
-    }
+    # Memory B cell floor: reduced decay at low IgG levels (memory half-life
+    # ~210 days vs ~21 days for plasma cells). Smoothed the same way as the
+    # CD8_E memory switch above: the hard step has the identical attracting
+    # structure, and IgG crosses 1 AU during the second week in every arm.
+    mem_frac_IgG  <- if (IgG > 0) 1 / (1 + IgG^(-n_mem_switch)) else 0
+    IgG_decay_eff <- d_IgG * (0.1 + 0.9 * mem_frac_IgG)
     dIgG <- IgG_switch + IgG_direct - IgG_decay_eff * IgG
 
     # --- Endothelial Permeability & Platelets ---
@@ -259,9 +273,19 @@ hantavirus_qsp_ode <- function(t, y, pars) {
     dC_RBV <- -(CL_RBV / Vd_RBV) * C_RBV
 
     # --- Favipiravir PK with active metabolite ---
+    # Linear (first-order) plasma clearance. Earlier versions added a term
+    #   CL_FAV_nl * C_FAV / (Km_FAV + C_FAV)
+    # documented as saturable metabolism, but it made TOTAL clearance RISE with
+    # concentration (192 -> 228 L/day over the simulated range). Favipiravir
+    # inhibits aldehyde oxidase and therefore its own metabolism, so its
+    # clearance FALLS with exposure. The term was the wrong way round. It was
+    # removed rather than re-signed because the real effect is time-dependent
+    # enzyme inactivation accumulating over repeated doses, not a
+    # concentration-dependent Michaelis-Menten term; representing that
+    # faithfully would require recalibrating CL_FAV. Removing it changed no
+    # conclusion (see the manuscript limitations).
     dC_FAV_gut <- -ka_FAV * C_FAV_gut
-    dC_FAV <- (ka_FAV * C_FAV_gut / Vd_FAV) -
-      (CL_FAV + CL_FAV_nl * C_FAV / (Km_FAV + C_FAV)) / Vd_FAV * C_FAV
+    dC_FAV <- (ka_FAV * C_FAV_gut / Vd_FAV) - (CL_FAV / Vd_FAV) * C_FAV
     dC_FAVI_RTP <- k_form * C_FAV - k_elim_RTP * C_FAVI_RTP
 
     # --- Hemolytic Anemia (Ribavirin toxicity) ---

@@ -7,37 +7,40 @@ treatment with **Ribavirin** and **Favipiravir**.
 ## Model Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        VIRAL DYNAMICS                                │
-│  dT/dt = -β·V·T                                                     │
-│  dI/dt = β·V·T - δ_nat·I - δ_NK·NK·I  (non-cytopathic)             │
-│  dV/dt = p·I · IFN_antiviral · (1-E_RBV) · (1-E_FAV) · (1-ψ) - c·V │
-└────────────┬───────────────────────────────────┬─────────────────────┘
-             │                                   │
-             ▼                                   ▼
-┌──────────────────────────┐        ┌──────────────────────────┐
-│  INNATE IMMUNE (6-var)   │        │  ENDOTHELIAL + PLT       │
-│  NSs → IFN antagonist    │        │  dP/dt = k_PV·V          │
-│  F_I → Type I IFN (α/β)  │        │        + k_PC·C_pro/Cref │
-│  NK  → NK cells          │        │  dPLT = prod-loss-cons   │
-│  F_II → Type II IFN (γ)  │        └──────────┬───────────────┘
-│  C_pro → Pro-infl cytokines │                 │
-│         + auto-amplification│                 ▼
-│  C_anti → IL-10 resolution │      ┌─────────────────────────┐
-└──────────┬─────────────────┘      │    ORGAN INJURY          │
-           │                        │  dK/dt (Renal)           │
-           │                        │  dL/dt (Lung/Cardio)     │
-           ▼                        └─────────────────────────┘
-    IFN_antiviral reduces viral production
-           ▲                                ▲
-           │                                │
-┌──────────┴─────────┐      ┌───────────────┴──────────┐
-│  RIBAVIRIN PK/PD   │      │  FAVIPIRAVIR PK/PD       │
-│  1-comp IV         │      │  Oral absorption + gut   │
-│  Emax PD           │      │  Nonlinear CL + RTP met. │
-│                    │      │  Emax PD (via RTP)        │
-└────────────────────┘      └──────────────────────────┘
+VIRAL DYNAMICS
+  dT/dt = k_T_reg * (T + eps) * (1 - T/T_0) - beta * V * T
+  dI/dt = beta * V * T - delta_nat * I - delta_NK * NK * I * (RBV boost)
+                       - CD8_clearance(CD8_E, I)
+  dV/dt = p * I * IFN_antiviral * (1 - E_RBV) * (1 - E_FAV)
+                * (1 - psi * E_RBV * E_FAV)
+          - c * V - k_neut_IgM * IgM * V - k_neut_IgG * IgG * V
+
+INNATE IMMUNE (5 states)          ADAPTIVE IMMUNE (5 states)
+  NSs   -> IFN antagonist           CD8_N -> primed pool
+  F_I   -> type I IFN (antiviral)   CD8_E -> effector pool (kills I)
+  NK    -> NK cells                 CD4   -> helper T cells
+  F_II  -> type II IFN              IgM   -> early antibody
+  C_pro -> pro-inflammatory         IgG   -> neutralising antibody
+  C_anti-> IL-10-like resolution
+
+ENDOTHELIUM & PLATELETS           ORGAN INJURY
+  dP/dt   = k_PV * (V/V_ref)        dK/dt = k_KP * P * (1 - E_RBV_endo)
+          + k_PC * (C_pro/C_ref)          + k_KC * (C_pro/C_ref)
+          + k_P_CD8 * CD8_E               + k_KH * thrombocytopenia
+          - d_P * P                       - d_K_recovered * K
+  dPLT/dt = k_PLT_prod                dL/dt = k_LP * P * (1 - E_RBV_endo)
+          - k_PLT_loss * PLT              + k_LC * (C_pro/C_ref)
+          - k_PLT_cons * P * PLT          + k_Lfluid * fluid_leak
+                                          - d_L_recovered * L
+
+PK/PD
+  Ribavirin   1-compartment IV, sigmoidal Emax on viral production,
+              plus immunomodulatory and endothelial-protective terms
+  Favipiravir gut -> plasma -> intracellular RTP, sigmoidal Emax on RTP
 ```
+
+The full equation set, with every term and all parameter definitions, is in the
+supplementary material. The block above is a summary, not a substitute.
 
 ### State Variables (23 compartments)
 
@@ -52,16 +55,16 @@ treatment with **Ribavirin** and **Favipiravir**.
 | F_II | Type II IFN (IFN-γ, pro-inflammatory) | AU |
 | C_pro | Pro-inflammatory cytokine burden | AU |
 | C_anti | Anti-inflammatory cytokine burden (IL-10-like) | AU |
-| P | Vascular permeability index | 0–1 |
+| P | Vascular permeability index | AU (~291 at the placebo peak) |
 | PLT | Platelet count | /μL |
-| K | Renal injury index | 0–1 |
-| L | Lung injury index | 0–1 |
+| K | Renal injury index | AU (~53 at the placebo peak) |
+| L | Lung injury index | AU (~183 at the placebo peak) |
 | CD8_N | CD8+ naive/primed T cells | AU |
 | CD8_E | CD8+ effector T cells | AU |
 | CD4 | CD4+ helper T cells | AU |
 | IgM | IgM antibodies | AU |
 | IgG | Neutralizing IgG antibodies | AU |
-| C_RBV | Ribavirin plasma concentration | μg/mL |
+| C_RBV | Ribavirin exposure (model-internal scale, NOT plasma — see below) | μg/mL |
 | C_FAV_gut | Favipiravir gut compartment | mg |
 | C_FAV | Favipiravir plasma concentration | μg/mL |
 | C_FAVI_RTP | Favipiravir active metabolite (RTP) | μg/mL |
@@ -85,6 +88,10 @@ Key features:
 - Anti-inflammatory counter-regulation via IL-10
 - Unit-normalized production terms using reference values
 
+> **These terms are present in the equations but several carry no numerical
+> weight at the calibrated parameter values.** Read "What the delivered model
+> actually does" below before interpreting any of them as a mechanism.
+
 ### Antiviral PD
 
 - **Ribavirin**: Emax model with Emax = 0.70, EC50 = 8 μg/mL, γ = 1.5
@@ -95,7 +102,58 @@ Key features:
 
 - **Dialysis probability**: sigmoidal function of renal injury K
 - **ECMO probability**: sigmoidal function of lung injury L
-- **Mortality probability**: capped composite of dialysis risk, ECMO risk, and cytokine burden
+- **Mortality probability**: syndrome-weighted composite of peak renal, lung and
+  cytokine risk blended 70/30 with the corresponding area-under-curve terms.
+  It does **not** reuse the dialysis or ECMO risks: those have used separate,
+  decoupled half-saturation constants since the 2026-06-03 recalibration.
+
+## What the delivered model actually does
+
+The equations span eight modules, but at the calibrated parameter values only a
+few of them carry the output. Integrating each term over the representative
+HFRS placebo trajectory (every row below is pinned by
+`tests/testthat/test-manuscript-claims.R`, which is the quickest way to
+reproduce them):
+
+| Quantity | Breakdown |
+|---|---|
+| Mortality probability | renal injury **85.3%**, pulmonary **14.7%**, pro-inflammatory cytokines **0.090%** |
+| Infected-cell clearance | CD8+ killing **67.1%**, natural turnover **32.9%**, NK **0.0019%** |
+| Viral clearance | non-specific *c* **99.86%**, IgG **0.087%**, IgM **0.055%** |
+| Type I IFN | suppresses viral production by at most **0.0008%** |
+| Cytokine auto-amplification | runs at **0.00035%** of its capacity |
+| Ribavirin immunomodulatory term | changes day-1 mortality by **0.007 percentage points** (2.418% → 2.425%) |
+| Ribavirin endothelial term | changes day-1 mortality by **3.56 percentage points** (2.418% → 5.975%) |
+
+So: **this is a virus → permeability → renal injury model.** The cytokine,
+interferon, NK and antibody modules are implemented and integrate correctly,
+but they do not move the endpoints at these parameter values, and ribavirin's
+predicted organ protection rests entirely on the single endothelial-protective
+term. Do not cite this model as evidence about cytokine-driven pathology,
+interferon antagonism, antibody-mediated protection or immunomodulation.
+Peak viraemia is target-cell-limited (`p·I_peak/c`), not IFN-limited.
+
+Two further caveats that matter when reading the code:
+
+- **Ribavirin concentrations are a model-internal exposure scale, not plasma
+  concentrations.** The dose conversion uses `Vd_RBV` = 45 L, giving a peak near
+  382 µg/mL, while the apparent volume of distribution for ribavirin is
+  800–5000 L (3–22 µg/mL). `EC50_RBV` was calibrated on the same internal scale,
+  so efficacy endpoints are unaffected, but the concentration axis of the PK
+  figure is not comparable with measured plasma levels.
+- **`P`, `K` and `L` are unbounded indices, not 0–1 fractions.** In the
+  representative placebo patient they peak at 291, 53 and 183.
+
+### Parameter identifiability
+
+`p → p/f`, `beta → beta*f`, `V_ref → V_ref/f` leaves every calibration target
+invariant (placebo mortality 9.584% → 9.640%, K_peak 53.04 → 53.65, platelet
+nadir 40,236 → 39,712 over `f` = 1 → 100) while peak viral load moves
+3.42e7 → 3.44e5 and the day-1 combination risk reduction moves 90.0% → 36.9%.
+Reproduce with `Rscript R/identifiability_and_humoral.R`
+(`outputs/identifiability_ridge.csv`).
+The calibration does not identify `f`. Treat the *ordering* and *shape* of the
+treatment-window results as robust and the *magnitude* as unidentified.
 
 ## Project Structure
 
@@ -113,10 +171,13 @@ Hantavirus_QSP/
 │   ├── run_pipeline.R        # Core pipeline: trial + main figures/tables
 │   ├── sensitivity_analysis.R / uncertainty_quantification.R / gsa_prcc.R
 │   ├── ablation_analysis.R / preexposure_analysis.R / optimal_duration.R / vpc_analysis.R
+│   ├── duration_start_interaction.R  # start day x course duration (42-day horizon)
+│   ├── identifiability_and_humoral.R # ridge scan (table 3) + humoral scan (table S6)
 │   ├── plot_*.R              # Organ/adaptive heatmaps & decluttered trajectories
 │   ├── regen_all_aux.R / regen_cached_figs.R   # Re-run auxiliaries / cached figures
 │   └── make_s7.R             # Supplementary Fig. S7 (external-corroboration overlay)
-├── tests/testthat/           # Unit tests (parameter & model invariants)
+├── tests/testthat/           # Parameter/model invariants, calibrated-endpoint
+│                             # regressions, and the manuscript-claim guards
 ├── outputs/                  # Generated figures and tables
 ├── DESCRIPTION
 └── README.md
@@ -128,7 +189,7 @@ Hantavirus_QSP/
 
 ```r
 install.packages(c("deSolve", "ggplot2", "dplyr", "tidyr", "gridExtra",
-                   "foreach", "doParallel"))
+                   "scales", "foreach", "doParallel"))
 ```
 
 ### R version
@@ -153,31 +214,53 @@ main()
 ```
 
 `run_pipeline.R` runs the core virtual trial and produces the main figures and
-tables. The additional analyses (local/global sensitivity, uncertainty
-quantification, mechanism ablation, post-exposure prophylaxis, optimal-duration,
-and VPC) live in separate scripts; regenerate them with:
+tables. The additional analyses (local sensitivity, uncertainty quantification,
+mechanism ablation, post-exposure prophylaxis, optimal-duration and VPC) live in
+separate scripts. Global sensitivity and the two scan analyses are separate
+again, because neither is driven by `regen_all_aux.R`. Regenerate everything
+downstream of the pipeline with, in order:
 
 ```bash
-Rscript R/regen_all_aux.R        # re-runs the auxiliary analyses
-Rscript R/regen_cached_figs.R    # regenerates the cached-data figures
-Rscript R/make_s7.R              # regenerates Supplementary Fig. S7 (external corroboration)
+Rscript R/gsa_prcc.R                        # global sensitivity (LHS + PRCC): ESM table S5, Fig. S6
+Rscript R/duration_start_interaction.R      # start day x duration: Figure 5, ESM table S8
+Rscript R/identifiability_and_humoral.R     # main table 3 (ridge) + ESM table S6 (humoral scan)
+Rscript R/regen_all_aux.R                   # re-runs the nine auxiliary analyses
+Rscript R/make_s7.R                         # ESM Fig. S7 (external corroboration)
+Rscript R/regen_cached_figs.R               # only if you want the cached-data figures alone
 ```
+
+`gsa_prcc.R` runs 4000 simulations and takes roughly 25 minutes on 23 cores;
+the others are minutes. `regen_all_aux.R` deletes the per-patient caches before
+it runs, so it re-simulates rather than re-emitting them; `regen_cached_figs.R`
+is the same cache-clearing step for the figure scripts alone and is redundant
+after `regen_all_aux.R`. `duration_start_interaction.R` caches to
+`outputs/duration_start_data.csv` and reloads it if present — delete that file
+to force re-simulation.
 
 > Note: `R/sensitivity_analysis.R` and `R/uncertainty_quantification.R` must be
 > run as standalone `Rscript` invocations (they fail if sourced inside another
-> script's environment).
+> script's environment). `regen_all_aux.R` already invokes them as subprocesses.
 
 ### Regenerate the submission figures
 
-The four main-text figures are produced entirely by code and copied into the
-manuscript submission folder by `R/assemble_figures.R`:
+All five main-text figures and all seven electronic supplementary figures are
+produced entirely by code. The canonical assembly step is `_src/build.py`,
+which converts the Markdown sources to .docx and copies every figure into the
+submission folder under its submission name:
 
 ```bash
-Rscript R/run_pipeline.R           # Figure 1 (viral kinetics) + Figure 2 (treatment window)
-Rscript R/plot_organ_heatmap.R     # Figure 3 (organ injury heatmap)
-Rscript R/plot_adaptive_heatmap.R  # Figure 4 (adaptive immunity heatmap)
-Rscript R/assemble_figures.R       # copy outputs/*.png -> Figures/Figure_1..4.png
+Rscript R/run_pipeline.R                    # Figure 1 (viral kinetics) + Figure 2 (treatment window)
+Rscript R/plot_organ_heatmap.R              # Figure 3 (organ injury heatmap)
+Rscript R/plot_adaptive_heatmap.R           # Figure 4 (adaptive immunity heatmap)
+Rscript R/duration_start_interaction.R      # Figure 5 (start day x course duration)
+python "manuscript/Royal Society/_src/build_supplementary.py"   # rebuild ESM from outputs/
+python "manuscript/Royal Society/_src/build.py"                 # .docx + Figures/Figure_1..5, S1..S7
 ```
+
+`R/assemble_figures.R` copies the five main figures alone into
+`manuscript/Royal Society/Figures/`, for refreshing them without Python; it does
+not handle the supplementary figures. Keep its `fig_map` in step with `FIGURES`
+in `_src/build.py`.
 
 Figures carry no in-figure title (the caption is supplied in the manuscript).
 Figures 1–2 are seeded (`virtual_population` seed 42, `simulate_trial` seed 123),

@@ -72,15 +72,28 @@ plot_viral_kinetics <- function(sim_data, outfile = "outputs/viral_kinetics.png"
       fun = median, geom = "line", linewidth = 1.0,
       ggplot2::aes(group = arm)
     ) +
+    # One copy per mL is the physical floor. The model is deterministic and has
+    # no extinction threshold, so a cleared arm decays smoothly through 1e-12
+    # and beyond. Plotted unclipped, eight of the axis's decades were spent on
+    # sub-virion values and the whole clinical range was squeezed into the top
+    # of each panel. coord_cartesian clips the VIEW only: rows are not dropped,
+    # so the medians and IQR ribbons are still computed on the full data.
+    ggplot2::geom_hline(yintercept = 1, linetype = "dotted",
+                        colour = "grey45", linewidth = 0.4) +
     ggplot2::facet_wrap(~ start_label, ncol = 4) +
-    ggplot2::scale_y_log10() +
+    ggplot2::scale_y_log10(
+      breaks = 10^(0:7),
+      labels = expression(1, 10, 10^2, 10^3, 10^4, 10^5, 10^6, 10^7)
+    ) +
+    ggplot2::coord_cartesian(ylim = c(1, NA)) +
     ggplot2::scale_colour_manual(values = arm_colors) +
     ggplot2::scale_fill_manual(values = arm_colors, guide = "none") +
     ggplot2::labs(
       x       = "Time (days)",
       y       = expression("Viral RNA (copies/mL)"),
       colour  = "Treatment arm",
-      title   = NULL
+      title   = NULL,
+      caption = "Dotted line: 1 copy/mL. Curves crossing it have been cleared."
     ) +
     theme_qsp()
 
@@ -226,8 +239,13 @@ plot_pk_profiles <- function(sim_data,
     ggplot2::stat_summary(fun = median, geom = "line", linewidth = 2.0) +
     ggplot2::labs(
       x = "Time (days)",
-      y = expression("Ribavirin (" * mu * "g/mL)"),
-      title = "Ribavirin Plasma Concentration"
+      # NOT a plasma concentration: the dose-to-concentration conversion uses
+      # Vd_RBV = 45 L, while the apparent Vd of ribavirin is 800-5000 L. EC50_RBV
+      # was calibrated against this same internal scale, so the antiviral effect
+      # and every endpoint are unaffected -- but the axis must not be read as a
+      # measured plasma level, and the panel title said otherwise.
+      y = expression("Ribavirin (" * mu * "g/mL, model scale)"),
+      title = "(a)  Ribavirin exposure (model-internal scale, not plasma)"
     ) +
     theme_qsp() +
     ggplot2::scale_colour_manual(values = arm_colors)
@@ -240,7 +258,7 @@ plot_pk_profiles <- function(sim_data,
     ggplot2::labs(
       x = "Time (days)",
       y = expression("Favipiravir (" * mu * "g/mL)"),
-      title = "Favipiravir Plasma Concentration"
+      title = "(b)  Favipiravir plasma concentration"
     ) +
     theme_qsp() +
     ggplot2::scale_colour_manual(values = arm_colors)
@@ -253,14 +271,17 @@ plot_pk_profiles <- function(sim_data,
     ggplot2::labs(
       x = "Time (days)",
       y = expression("Favipiravir-RTP (" * mu * "g/mL)"),
-      title = "Favipiravir Active Metabolite (RTP)"
+      title = "(c)  Favipiravir active metabolite (RTP)"
     ) +
     theme_qsp() +
     ggplot2::scale_colour_manual(values = arm_colors)
 
   # Combine
-  gridExtra::grid.arrange(p1, p2, p3, ncol = 1)
-  ggsave_safe(outfile, width = 10, height = 12, dpi = 300)
+  # grid.arrange() draws to the device and returns nothing ggsave can use, so a
+  # bare ggsave() here silently saved last_plot() (= p3) and the figure shipped
+  # with only its third panel. arrangeGrob() returns the grob; pass it explicitly.
+  g <- gridExtra::arrangeGrob(p1, p2, p3, ncol = 1)
+  ggsave_safe(outfile, plot = g, width = 10, height = 12, dpi = 300)
   message(sprintf("Saved: %s", outfile))
 }
 
@@ -371,8 +392,9 @@ plot_window_sensitivity <- function(window_data,
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 0))
 
   # Combine panels using grid
-  gridExtra::grid.arrange(p1, p2, p3, ncol = 1, heights = c(1, 1, 1))
-  ggsave_safe(outfile, width = 10, height = 14, dpi = 300)
+  # See note in plot_pk_profiles(): grid.arrange + bare ggsave loses panels A and B.
+  g <- gridExtra::arrangeGrob(p1, p2, p3, ncol = 1, heights = c(1, 1, 1))
+  ggsave_safe(outfile, plot = g, width = 10, height = 14, dpi = 300)
   message(sprintf("Saved: %s", outfile))
 }
 
@@ -546,7 +568,6 @@ write_simulation_summary <- function(trial_output, window_data,
   }
 
   lines <- c(lines, "")
-  lines <- c(lines, "String concatenation helper: %s% <- function(a, b) paste0(a, b)")
   lines <- c(lines, "=" %s+% paste(rep("=", 59), collapse = ""))
 
   dir.create(dirname(outfile), showWarnings = FALSE, recursive = TRUE)
