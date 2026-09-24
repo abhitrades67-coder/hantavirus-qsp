@@ -1,7 +1,7 @@
 ============================================================
   LOCAL SENSITIVITY ANALYSIS — HANTAVIRUS QSP MODEL
 ============================================================
-Date: 2026-06-03
+Date: 2026-09-24
 Perturbations: ±10, 25, 50%
 Arms: placebo, ribavirin
 Syndrome: HFRS
@@ -32,12 +32,12 @@ d_C                   placebo       0.0000
 d_C                   ribavirin     0.0000
 k_LP                  placebo       0.0000
 k_LP                  ribavirin     0.0000
+k_CC                  placebo       0.0000
+k_CC                  ribavirin     0.0000
 d_L                   placebo       0.0000
 d_L                   ribavirin     0.0000
 K_CC                  placebo       0.0000
 K_CC                  ribavirin     0.0000
-k_CC                  placebo       0.0000
-k_CC                  ribavirin     0.0000
 CL_RBV                placebo       0.0000
 CL_RBV                ribavirin     0.0000
 EC50_RBV              placebo       0.0000
@@ -56,7 +56,7 @@ Parameter             Arm           |S_mortality|
 ---------             ---           -------------
 p                     ribavirin     1.5798
 beta                  ribavirin     1.3626
-c                     ribavirin     1.3506
+c                     ribavirin     1.3507
 p                     placebo       1.1147
 beta                  placebo       1.0004
 k_KP                  ribavirin     0.5251
@@ -83,10 +83,10 @@ k_neut_IgG            ribavirin     0.0002
 k_neut_IgG            placebo       0.0002
 delta_NK              ribavirin     0.0000
 delta_NK              placebo       0.0000
-K_CC                  placebo       0.0000
 K_CC                  ribavirin     0.0000
-k_CC                  placebo       0.0000
 k_CC                  ribavirin     0.0000
+K_CC                  placebo       0.0000
+k_CC                  placebo       0.0000
 CL_RBV                placebo       0.0000
 EC50_RBV              placebo       0.0000
 Emax_RBV              placebo       0.0000

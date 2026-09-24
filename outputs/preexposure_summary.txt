@@ -2,7 +2,7 @@
   HANTAVIRUS QSP — POST-EXPOSURE PROPHYLAXIS ANALYSIS
 ============================================================
 
-Date: 2026-09-08
+Date: 2026-09-24
 Treatment days: 0, 1, 2, 3, 4, 5 (post-exposure)
 Arms: placebo, ribavirin, favipiravir, combination
 Disease establishment threshold: V_peak > 1e+04 copies/mL
@@ -20,6 +20,8 @@ ARM: PLACEBO
 
 ARM: RIBAVIRIN
   PEP Day   V_peak        K_peak      L_peak      Mortality   Dialysis    Established?
+  0         1.00e+03      0.0         0.0         0.0%        0.0%        NO
+  1         2.43e+03      0.0         0.0         0.0%        0.0%        NO
   2         1.87e+04      0.0         0.0         0.0%        0.0%        YES
   3         1.00e+07      3.9         28.4        2.2%        5.3%        YES
   4         1.04e+07      4.0         29.6        2.3%        5.5%        YES
@@ -28,13 +30,17 @@ ARM: RIBAVIRIN
 ARM: FAVIPIRAVIR
   PEP Day   V_peak        K_peak      L_peak      Mortality   Dialysis    Established?
   0         1.00e+03      0.0         0.0         0.0%        0.0%        NO
+  1         1.94e+03      0.0         0.0         0.0%        0.0%        NO
+  2         1.15e+04      0.0         0.0         0.0%        0.0%        YES
   3         7.01e+04      0.0         0.0         0.0%        0.0%        YES
   4         4.58e+05      0.2         0.5         0.1%        0.3%        YES
-  5         3.03e+07      25.6        79.0        5.3%        26.8%       YES
+  5         2.99e+07      23.4        71.7        5.0%        25.1%       YES
 
 ARM: COMBINATION
   PEP Day   V_peak        K_peak      L_peak      Mortality   Dialysis    Established?
   0         1.00e+03      0.0         0.0         0.0%        0.0%        NO
+  1         1.94e+03      0.0         0.0         0.0%        0.0%        NO
+  2         1.15e+04      0.0         0.0         0.0%        0.0%        YES
   3         7.01e+04      0.0         0.0         0.0%        0.0%        YES
   4         4.58e+05      0.1         0.2         0.0%        0.1%        YES
   5         2.99e+06      0.4         1.9         0.2%        0.5%        YES
@@ -45,9 +51,9 @@ ARM: COMBINATION
 PREVENT = treatment contained the inoculum (V_peak < threshold)
 FAIL    = infection broke through despite treatment
 
-Day 0: Placebo=FAIL, Ribavirin=-, Favipiravir=PREVENT, Combination=PREVENT
-Day 1: Placebo=FAIL, Ribavirin=-, Favipiravir=-, Combination=-
-Day 2: Placebo=FAIL, Ribavirin=FAIL, Favipiravir=-, Combination=-
+Day 0: Placebo=FAIL, Ribavirin=PREVENT, Favipiravir=PREVENT, Combination=PREVENT
+Day 1: Placebo=FAIL, Ribavirin=PREVENT, Favipiravir=PREVENT, Combination=PREVENT
+Day 2: Placebo=FAIL, Ribavirin=FAIL, Favipiravir=FAIL, Combination=FAIL
 Day 3: Placebo=FAIL, Ribavirin=FAIL, Favipiravir=FAIL, Combination=FAIL
 Day 4: Placebo=FAIL, Ribavirin=FAIL, Favipiravir=FAIL, Combination=FAIL
 Day 5: Placebo=FAIL, Ribavirin=FAIL, Favipiravir=FAIL, Combination=FAIL

@@ -127,6 +127,12 @@ get_parameters <- function() {
   pars$alpha_CD4_help <- 2.0       # dimensionless    CD4 help max boost for CD8
   pars$K_CD4_help <- 5             # AU               CD4 help half-max for CD8
 
+  # Steepness of the effector-to-memory decay transition at the 1 AU threshold
+  # (applies to CD8_E and IgG). Numerical regularisation of what were if/else
+  # steps: those steps are attracting discontinuities that pinned the solver at
+  # the crossing. See the comment at dCD8_E in model/hantavirus_qsp.R.
+  pars$n_mem_switch <- 50          # dimensionless    Memory-switch Hill exponent
+
   # CD8+ mediated infected cell clearance
   pars$delta_CD8  <- 1e-3          # /(AU*day)        CD8-mediated infected cell clearance (calibrated for acute + clearance)
 
@@ -204,7 +210,12 @@ get_parameters <- function() {
   # for the 60:1 RBC:plasma partitioning - plasma concentrations underestimate
   # intracellular RTP concentrations by ~60x.
   #
-  pars$Vd_RBV    <- 45           # L                # Volume of distribution (plasma)
+  # NOT the plasma volume of distribution (800-5000 L). This defines a
+  # model-internal EFFECT-SITE exposure scale: ribavirin is transported into
+  # cells and phosphorylated, so intracellular exposure greatly exceeds plasma.
+  # EC50_RBV is calibrated against this same scale, so the antiviral effect is
+  # invariant to it; only the concentration axis of the PK figure is affected.
+  pars$Vd_RBV    <- 45           # L                # Effect-site volume (internal scale)
   pars$CL_RBV_std <- 5.0        # L/day            # Effective clearance at eGFR=90 (t1/2 = 6.3 days)
   pars$CL_RBV    <- 5.0         # L/day            # Default clearance (eGFR=90)
   pars$eGFR_ref  <- 90           # mL/min           # Reference eGFR for CL scaling
@@ -217,9 +228,13 @@ get_parameters <- function() {
   # ===========================================================================
   pars$ka_FAV    <- 1.5 * 24     # /day             # Absorption rate (1.5/h * 24)
   pars$Vd_FAV    <- 30           # L                # Volume of distribution
+  # Favipiravir plasma clearance is linear (first-order). A second,
+  # concentration-dependent term (CL_FAV_nl = 96 L/day, Km_FAV = 50 ug/mL) was
+  # removed: it was documented as saturable metabolism but made total clearance
+  # RISE with concentration, whereas favipiravir inhibits aldehyde oxidase and
+  # so its clearance falls with exposure. See the comment at dC_FAV in
+  # model/hantavirus_qsp.R.
   pars$CL_FAV    <- 8 * 24       # L/day            # Linear clearance (8 L/h * 24)
-  pars$CL_FAV_nl <- 4 * 24       # L/day            # Nonlinear clearance capacity
-  pars$Km_FAV    <- 50           # ug/mL            # Michaelis constant for nonlinear CL
   pars$k_form    <- 0.1 * 24     # /day             # RTP formation rate (0.1/h * 24)
   pars$k_elim_RTP <- 0.05 * 24  # /day             # RTP elimination rate (0.05/h * 24)
 
@@ -266,10 +281,9 @@ get_parameters <- function() {
   pars$w_L_HFRS  <- 0.02         # Lung weight for HFRS (minor)
   pars$w_C_HFRS  <- 0.05         # Cytokine weight for HFRS
 
-  # HCPS mortality weights (lung-dominant; target ~40% placebo mortality)
-  pars$w_K_HCPS  <- 0.02         # Renal weight for HCPS (minor)
-  pars$w_L_HCPS  <- 0.35         # Lung weight for HCPS
-  pars$w_C_HCPS  <- 0.10         # Cytokine weight for HCPS
+  # HCPS mortality weights removed: the lung-weighted mapping was intended to
+  # reproduce ~40% placebo mortality and delivered 26%, so it was never a
+  # calibrated arm of this model. This analysis is HFRS-only.
 
   # AUC-based mortality components — captures cumulative organ injury burden
   # (not just peak severity). This makes treatment-accelerated recovery
@@ -307,11 +321,11 @@ build_parameter_table <- function(pars = get_parameters()) {
   tbl <- rbind(tbl, data.frame(parameter="I_0", value=0, units="cells",
     description="Initial infected cells", source="Assumed", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="V_0", value=1000, units="copies/mL",
-    description="Initial viral inoculum (increased for establishment)", source="Estimated from clinical viremia", confidence="medium"))
+    description="Initial viral inoculum (increased for establishment)", source="Estimated from clinical viraemia", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="beta", value=1.0e-7, units="mL/copy/day",
-    description="Infection rate constant (calibrated for R0=3.33, ~9.6% placebo mortality)", source="Calibrated to Huggins JID 1991 placebo mortality", confidence="medium"))
+    description="Infection rate constant (calibrated to ~9.6% placebo mortality; gives a viral-establishment index beta*T_0*p/c = 3.33 /day, which is NOT a reproduction number - see the note at pars$beta)", source="Calibrated to Huggins JID 1991 placebo mortality", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="p", value=100, units="copies/cell/day",
-    description="Viral production rate", source="Fitted to peak viremia", confidence="medium"))
+    description="Viral production rate", source="Fitted to peak viraemia", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="c", value=3, units="/day",
     description="Viral clearance rate", source="Literature (RNA virus half-life ~5.5h)", confidence="high"))
   tbl <- rbind(tbl, data.frame(parameter="k_T_reg", value=0.30, units="/day",
@@ -408,7 +422,7 @@ build_parameter_table <- function(pars = get_parameters()) {
   tbl <- rbind(tbl, data.frame(parameter="k_CD4_I", value=1.5, units="AU/day",
     description="CD4 activation by infected cells", source="Assumed (T cell kinetics, PMID:19072554)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="K_CD4_I", value=500, units="cells",
-    description="CD4 activation saturation (I) — lowered to match CD8 priming sensitivity", source="Calibrated (CD4/CD8 consistency)", confidence="medium"))
+    description="CD4 activation saturation (I), lowered to match CD8 priming sensitivity", source="Calibrated (CD4/CD8 consistency)", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="k_CD4_F", value=1.0, units="AU/day",
     description="CD4 activation by IFN-I", source="Assumed", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="K_CD4_F", value=50, units="AU",
@@ -420,11 +434,11 @@ build_parameter_table <- function(pars = get_parameters()) {
   tbl <- rbind(tbl, data.frame(parameter="k_CD8_I", value=5.0, units="AU/day",
     description="CD8 priming by infected cells (upscaled for delay chain)", source="Calibrated (T cell kinetics, PMID:19072554)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="K_CD8_I", value=1000, units="cells",
-    description="CD8 activation saturation (I) — lowered for low-antigen priming", source="Calibrated (prevents viral rebound)", confidence="medium"))
+    description="CD8 activation saturation (I), lowered for low-antigen priming", source="Calibrated (prevents viral rebound)", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="k_CD8_F", value=3.0, units="AU/day",
     description="CD8 priming by IFN-I (upscaled for delay chain)", source="Calibrated", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="K_CD8_F", value=20, units="AU",
-    description="CD8 activation saturation (F_I) — lowered for low-antigen priming", source="Calibrated (prevents viral rebound)", confidence="medium"))
+    description="CD8 activation saturation (F_I), lowered for low-antigen priming", source="Calibrated (prevents viral rebound)", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="k_mat", value=0.14, units="/day",
     description="CD8_N to CD8_E maturation rate (delay ~7d)", source="PMID:21525363 (T cell expansion kinetics)", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="d_CD8_N", value=0.05, units="/day",
@@ -435,6 +449,9 @@ build_parameter_table <- function(pars = get_parameters()) {
     description="CD4 help max boost for CD8", source="Assumed (T cell help)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="K_CD4_help", value=5, units="AU",
     description="CD4 help half-max for CD8", source="Assumed", confidence="low"))
+  tbl <- rbind(tbl, data.frame(parameter="n_mem_switch", value=50, units="dimensionless",
+    description="Hill exponent of the effector-to-memory decay transition at the 1 AU threshold (CD8_E, IgG); numerical regularisation of a step function, not a fitted biological quantity",
+    source="Numerical (agrees with the step function it replaces to within 1% of the decay rate outside +/-9% of the threshold)", confidence="structural"))
   tbl <- rbind(tbl, data.frame(parameter="delta_CD8", value=1e-3, units="1/(AU*day)",
     description="CD8-mediated infected cell clearance", source="Calibrated (CD8 killing)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="k_P_CD8", value=0.005, units="/day",
@@ -452,7 +469,7 @@ build_parameter_table <- function(pars = get_parameters()) {
   tbl <- rbind(tbl, data.frame(parameter="k_switch", value=0.05, units="/day",
     description="IgM to IgG class switch rate", source="Assumed (class switch)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="k_IgG_direct", value=0.02, units="/day",
-    description="Antigen-driven (I) IgG production rate", source="Assumed (germinal center kinetics)", confidence="low"))
+    description="Antigen-driven (I) IgG production rate", source="Assumed (germinal centre kinetics)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="K_IgG", value=500, units="cells",
     description="Antigen half-max for direct IgG production", source="Assumed", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="d_IgG", value=0.033, units="/day",
@@ -460,9 +477,9 @@ build_parameter_table <- function(pars = get_parameters()) {
 
   # --- Adaptive immunity: antibody neutralization ---
   tbl <- rbind(tbl, data.frame(parameter="k_neut_IgM", value=0.005, units="1/(AU*day)",
-    description="IgM neutralization rate", source="Calibrated (lower affinity)", confidence="low"))
+    description="IgM neutralisation rate", source="Calibrated (lower affinity)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="k_neut_IgG", value=0.05, units="1/(AU*day)",
-    description="IgG neutralization rate (higher affinity)", source="Calibrated (PMID:30463919)", confidence="low"))
+    description="IgG neutralisation rate (higher affinity)", source="Calibrated (PMID:30463919)", confidence="low"))
 
   # --- Permeability / platelets ---
   tbl <- rbind(tbl, data.frame(parameter="k_PV", value=0.5, units="/day",
@@ -502,7 +519,7 @@ build_parameter_table <- function(pars = get_parameters()) {
 
   # --- Ribavirin PK ---
   tbl <- rbind(tbl, data.frame(parameter="Vd_RBV", value=45, units="L",
-    description="Ribavirin volume of distribution (plasma)", source="FDA label / literature", confidence="high"))
+    description="Ribavirin effect-site volume, defining a model-internal exposure scale. NOT the plasma volume of distribution, which is 800-5000 L; ribavirin is transported into cells and phosphorylated, so the effect-site concentration is far above plasma. EC50_RBV is calibrated on this same scale, so the antiviral effect is unaffected by it", source="Model-internal exposure scale", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="CL_RBV_std", value=5.0, units="L/day",
     description="Ribavirin effective clearance at eGFR=90 (t1/2=6.2d, RBC-adjusted)", source="Recalibrated from chronic dosing PK (t1/2 ~150 h)", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="CL_RBV", value=5.0, units="L/day",
@@ -514,7 +531,7 @@ build_parameter_table <- function(pars = get_parameters()) {
   tbl <- rbind(tbl, data.frame(parameter="d_hgb", value=0.05, units="/day",
     description="Hgb recovery rate", source="Physiology (RBC lifespan ~120d)", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="Hgb_drop_max", value=4.0, units="g/dL",
-    description="Upper bound on modeled ribavirin-associated hemoglobin decline", source="Clinical constraint for 7-10 day IV RBV courses", confidence="medium"))
+    description="Upper bound on modelled ribavirin-associated haemoglobin decline", source="Clinical constraint for 7-10 day IV RBV courses", confidence="medium"))
 
   # --- Favipiravir PK ---
   tbl <- rbind(tbl, data.frame(parameter="ka_FAV", value=36, units="/day",
@@ -523,10 +540,6 @@ build_parameter_table <- function(pars = get_parameters()) {
     description="Favipiravir volume of distribution", source="FDA review", confidence="high"))
   tbl <- rbind(tbl, data.frame(parameter="CL_FAV", value=192, units="L/day",
     description="Favipiravir linear clearance (8 L/h)", source="Literature", confidence="high"))
-  tbl <- rbind(tbl, data.frame(parameter="CL_FAV_nl", value=96, units="L/day",
-    description="Favipiravir nonlinear clearance (4 L/h)", source="Literature (saturable metabolism)", confidence="medium"))
-  tbl <- rbind(tbl, data.frame(parameter="Km_FAV", value=50, units="ug/mL",
-    description="Michaelis constant for FAV nonlinear CL", source="Literature", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="k_form", value=2.4, units="/day",
     description="RTP formation rate (0.1/h)", source="Assumed (intracellular activation)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="k_elim_RTP", value=1.2, units="/day",
@@ -536,7 +549,7 @@ build_parameter_table <- function(pars = get_parameters()) {
   tbl <- rbind(tbl, data.frame(parameter="Emax_RBV", value=0.70, units="dimensionless",
     description="Max ribavirin effect (reduced for partial efficacy)", source="Calibrated for Huggins 7-fold RRR (JID 1991)", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="EC50_RBV", value=8, units="ug/mL",
-    description="Ribavirin half-max (calibrated for Huggins 7-fold RRR; lit EC50 ~10-12 ug/mL)", source="Calibrated for Huggins JID 1991; lit EC50 HTNV ~40-50 uM", confidence="medium"))
+    description="Ribavirin half-max effect concentration on the Vd_RBV effect-site scale (calibrated to the day-1 window of the Huggins trial)", source="Calibrated to Huggins JID 1991", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="gamma_RBV", value=1.5, units="dimensionless",
     description="Hill coefficient for RBV", source="Assumed", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="Emax_FAV", value=0.98, units="dimensionless",
@@ -571,12 +584,6 @@ build_parameter_table <- function(pars = get_parameters()) {
     description="Lung mortality weight for HFRS", source="Calibrated", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="w_C_HFRS", value=0.05, units="dimensionless",
     description="Cytokine mortality weight for HFRS", source="Calibrated", confidence="medium"))
-  tbl <- rbind(tbl, data.frame(parameter="w_K_HCPS", value=0.02, units="dimensionless",
-    description="Renal mortality weight for HCPS", source="Calibrated", confidence="medium"))
-  tbl <- rbind(tbl, data.frame(parameter="w_L_HCPS", value=0.35, units="dimensionless",
-    description="Lung mortality weight for HCPS", source="Calibrated for ~40% HCPS placebo", confidence="medium"))
-  tbl <- rbind(tbl, data.frame(parameter="w_C_HCPS", value=0.10, units="dimensionless",
-    description="Cytokine mortality weight for HCPS", source="Calibrated", confidence="medium"))
   tbl <- rbind(tbl, data.frame(parameter="w_auc", value=0.30, units="dimensionless",
     description="Weight for AUC-based mortality component", source="Assumed (cumulative organ injury)", confidence="low"))
   tbl <- rbind(tbl, data.frame(parameter="K_auc50", value=200, units="day*AU",

@@ -104,6 +104,24 @@ main <- function() {
   )
   message(sprintf("  Window analysis: %d scenarios", nrow(window_data)))
 
+  # Full-precision record of the treatment-window analysis. The text summary
+  # rounds mortality to one decimal place, which is not enough for the
+  # published table, so the same numbers are written here as a CSV and the
+  # manuscript table is generated from this file.
+  pl_sim <- simulate_patient(pars, "placebo", t_start = 0, t_end = 21)
+  if (is.null(pl_sim)) stop("placebo reference simulation failed")
+  pl_mort <- extract_endpoints_from_simulation(pl_sim, pars, "HFRS")$mortality_prob
+  window_out <- window_data
+  window_out$placebo_mortality <- pl_mort
+  # Section 3.3 states each arm's viral exposure as a percentage of placebo.
+  # Record the denominator here: it is this patient's own 21-day placebo
+  # exposure, not the placebo row of the prophylaxis analysis, which runs on
+  # a different horizon and gives a different figure.
+  window_out$placebo_V_AUC <- compute_viral_AUC(pl_sim)
+  window_out$RRR <- 100 * (pl_mort - window_out$mortality_prob) / pl_mort
+  utils::write.csv(window_out, "outputs/treatment_window.csv", row.names = FALSE)
+  message("  Saved: outputs/treatment_window.csv")
+
   # ---- 6. Generate figures ----
   message("\n[6/7] Generating figures...")
 

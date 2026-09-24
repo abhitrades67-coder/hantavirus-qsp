@@ -34,7 +34,10 @@ if (file.exists(cache_path)) {
   arms <- c("ribavirin", "favipiravir", "combination")
   t_end <- 21
   dt <- 0.5
-  n_patients <- 10
+  # One representative patient at nominal parameter values. Earlier
+  # versions ran ten identical copies of it and described them as ten
+  # patients, which made every spread statistic structurally zero.
+  n_patients <- 1
 
   cat("Running adaptive immunity simulations for heatmap...\n")
   cat(sprintf("  %d patients x %d arms x %d days = %d simulations\n",

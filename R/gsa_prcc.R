@@ -13,7 +13,7 @@
 # Outputs:
 #   outputs/gsa_lhs_samples.csv   raw LHS design + outputs
 #   outputs/gsa_prcc.csv          PRCC per parameter x output
-#   outputs/gsa_prcc_tornado.png  PRCC tornado figure (Supplementary Fig S8)
+#   outputs/gsa_prcc_tornado.png  PRCC tornado figure (ESM figure S6)
 #   outputs/gsa_summary.txt       ranked text summary
 #
 # Usage (from project root): Rscript R/gsa_prcc.R
@@ -179,7 +179,6 @@ DRUG_PARAMS <- c(
   ka_FAV                  = "favipiravir PK (absorption)",
   Vd_FAV                  = "favipiravir PK (volume)",
   CL_FAV                  = "favipiravir PK (clearance)",
-  Km_FAV                  = "favipiravir PK (saturable elimination)",
   k_form                  = "ribavirin triphosphate formation",
   k_elim_RTP              = "ribavirin triphosphate elimination",
   k_hgb                   = "ribavirin haemolytic anaemia",
@@ -243,7 +242,7 @@ p <- ggplot(plotd, aes(x = prcc, y = parameter, fill = prcc > 0)) +
   theme_bw(base_size = 11) +
   theme(legend.position = "top", panel.grid.minor = element_blank(),
         strip.text = element_text(face = "bold"))
-ggsave("outputs/gsa_prcc_tornado.png", p, width = 13, height = 7, dpi = 200)
+ggsave("outputs/gsa_prcc_tornado.png", p, width = 13, height = 7, dpi = 300)
 
 # --- Text summary -----------------------------------------------------------
 sink("outputs/gsa_summary.txt")

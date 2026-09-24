@@ -1,0 +1,17 @@
+"quantity","value"
+"V_peak",34182581.7725451
+"t_V_peak",3
+"I_peak",1037845.18245249
+"V_peak_vs_pI_over_c_pct",0.0283198439810782
+"P_peak",291.2843412275
+"t_P_peak",6.3
+"K_peak",53.043994152707
+"t_K_peak",7.9
+"L_peak",183.400702223071
+"PLT_nadir",40236.3084773926
+"t_PLT_nadir",9.5
+"mortality_pct",9.58369149781988
+"dialysis_pct",43.1097791631141
+"ecmo_pct",31.4364897958154
+"Hgb_drop_ribavirin_day1",1.92345677593807
+"C_RBV_peak_ribavirin_day1",381.848250269705

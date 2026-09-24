@@ -42,11 +42,24 @@ test_that("clinical endpoints are valid probabilities and increase with injury",
   }
 })
 
-test_that("HCPS mortality is more lung-driven than HFRS at equal lung injury", {
+test_that("the endpoint mapping is HFRS-only and refuses any other syndrome", {
+  # The lung-weighted HCPS mapping was removed rather than shipped
+  # uncalibrated. A request for it must fail loudly, not fall through to the
+  # renal-weighted mapping and return a number that looks like an HCPS result.
   p <- get_parameters()
-  hfrs <- compute_clinical_endpoints(K = 0, L = 200, C_pro = 0, C_pro_max = 0,
-                                     syndrome = "HFRS", pars = p)
-  hcps <- compute_clinical_endpoints(K = 0, L = 200, C_pro = 0, C_pro_max = 0,
-                                     syndrome = "HCPS", pars = p)
-  expect_gt(hcps$mortality_prob, hfrs$mortality_prob)
+  expect_error(
+    compute_clinical_endpoints(K = 0, L = 200, C_pro = 0, C_pro_max = 0,
+                               syndrome = "HCPS", pars = p),
+    "HFRS only"
+  )
+  expect_false(any(grepl("HCPS", names(p))))
+})
+
+test_that("mortality is renal-weighted, as an HFRS model requires", {
+  p <- get_parameters()
+  renal <- compute_clinical_endpoints(K = 200, L = 0, C_pro = 0, C_pro_max = 0,
+                                      syndrome = "HFRS", pars = p)
+  lung  <- compute_clinical_endpoints(K = 0, L = 200, C_pro = 0, C_pro_max = 0,
+                                      syndrome = "HFRS", pars = p)
+  expect_gt(renal$mortality_prob, lung$mortality_prob)
 })

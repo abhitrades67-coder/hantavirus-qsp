@@ -5,15 +5,15 @@
 #' reference values that were NOT used in calibration (external consistency
 #' checks, not formal predictive validation; cf. Supplementary Table S4):
 #'
-#'   A. Placebo viral load with the reported viraemic window shaded
-#'      (PUUV RNA ~first 9 d, Pettersson 2014 [27]; DOBV peak ~1e7 copies/mL,
-#'      viraemia ~16-30 d, Korva 2013 [28]).
-#'   B. Virus / IgM / IgG (each scaled to its own maximum) — viral decline as
-#'      antibody rises (Evander 2007 [29]).
-#'   C. Placebo platelets with the reported 2nd-week nadir ~40,000/uL marked
-#'      (dashed line + shaded window, Rasche 2004 [25]).
-#'   D. Placebo vs favipiravir (day-1 start) viral load — early suppression and
-#'      later rebound (Safronetz 2013 [14]; lethal ANDV hamster model showed a
+#'   (a) Placebo viral load with the reported viraemic window shaded
+#'      (PUUV RNA ~first 9 d, Pettersson 2014; DOBV peak ~1e7 copies/mL,
+#'      viraemia ~16-30 d, Korva 2013).
+#'   (b) Virus / IgM / IgG (each scaled to its own maximum) — viral decline as
+#'      antibody rises (Evander 2007).
+#'   (c) Placebo platelets with the reported 2nd-week nadir ~40,000/uL marked
+#'      (dashed line + shaded window, Rasche 2004).
+#'   (d) Placebo vs favipiravir (day-1 start) viral load — early suppression and
+#'      later rebound (Safronetz 2013; lethal ANDV hamster model showed a
 #'      survival benefit only when favipiravir began before viraemia onset).
 #'
 #' Independent values are shown as annotated reference ranges, not digitized
@@ -21,6 +21,11 @@
 #'
 #' Run from project root:  Rscript R/make_s7.R
 #' Output:                 outputs/figure_S7_external_validation.png
+#'
+#' The citation numbers printed inside the panels are looked up in the
+#' manuscript's own reference list at run time, by first-author surname and
+#' year, so renumbering the bibliography cannot silently invalidate them. An
+#' earlier version hard-coded them and went stale twice.
 
 suppressPackageStartupMessages({
   library(deSolve)
@@ -35,6 +40,16 @@ source("R/pk_models.R")
 source("R/pd_models.R")
 source("R/simulate_trial.R")
 source("R/analysis.R")
+source("R/reference_numbers.R")
+
+REF <- reference_numbers(list(
+  korva      = c("Korva", "2013"),
+  pettersson = c("Pettersson", "2014"),
+  evander    = c("Evander", "2007"),
+  rasche     = c("Rasche", "2004"),
+  safronetz  = c("Safronetz", "2013")))
+cat("citation numbers read from the manuscript:",
+    paste(sprintf("%s [%d]", names(REF), REF), collapse = ", "), "\n")
 
 # --- Representative single-patient simulations (default parameter set) --------
 pars <- get_parameters()
@@ -81,10 +96,12 @@ p_a <- ggplot(pl, aes(time, V)) +
   scale_y_log10(limits = c(yA_lo, yA_hi)) +
   labs(
     x = "Days post-symptom onset", y = "Viral RNA (copies/mL)",
-    title    = "A  Viral load (placebo, model)",
+    title    = "(a)  Viral load (placebo, model)",
     subtitle = paste0(
-      "Independent: DOBV peak ~1e7 copies/mL, viraemia ~16-30 d (Korva 2013 [28]);\n",
-      "PUUV RNA ~first 9 d (shaded; Pettersson 2014 [27])")
+      sprintf("Independent: DOBV peak ~1e7 copies/mL, viraemia ~16-30 d (Korva 2013 [%d]);\n",
+              REF[["korva"]]),
+      sprintf("PUUV RNA ~first 9 d (shaded; Pettersson 2014 [%d])",
+              REF[["pettersson"]]))
   ) +
   theme_s7()
 
@@ -104,10 +121,11 @@ p_b <- ggplot(pb_long, aes(time, rel, colour = series)) +
                                  IgG = col_igg)) +
   labs(
     x = "Days post-symptom onset", y = "Relative (fraction of max)",
-    title    = "B  Virus vs antibody (placebo, model)",
+    title    = "(b)  Virus vs antibody (placebo, model)",
     subtitle = paste0(
       "Independent: viraemia falls as IgM/IgG rise; fatal case = sustained\n",
-      "high virus + absent antibody (Evander 2007 [29])")
+      sprintf("high virus + absent antibody (Evander 2007 [%d])",
+              REF[["evander"]]))
   ) +
   theme_s7(legend = "top")
 
@@ -121,8 +139,10 @@ p_c <- ggplot(pl, aes(time, PLT)) +
   scale_y_continuous(labels = scales::label_comma()) +
   labs(
     x = "Days post-symptom onset", y = "Platelets (/uL)",
-    title    = "C  Platelets (placebo, model)",
-    subtitle = "Independent: nadir ~40,000/uL in 2nd week (dashed line / shaded; Rasche 2004 [25])"
+    title    = "(c)  Platelets (placebo, model)",
+    subtitle = sprintf(paste("Independent: nadir ~40,000/uL in 2nd week",
+                             "(dashed line / shaded; Rasche 2004 [%d])"),
+                       REF[["rasche"]])
   ) +
   theme_s7()
 
@@ -140,10 +160,11 @@ p_d <- ggplot(pd_df, aes(time, pmax(V, 1), colour = arm)) +
                                  `Favipiravir d1` = col_fav)) +
   labs(
     x = "Days post-symptom onset", y = "Viral RNA (copies/mL)",
-    title    = "D  Favipiravir antiviral effect (model)",
+    title    = "(d)  Favipiravir antiviral effect (model)",
     subtitle = paste0(
       "Independent: hamster ANDV - oral favipiravir improved survival only if\n",
-      "begun before viraemia onset (Safronetz 2013 [14])")
+      sprintf("begun before viraemia onset (Safronetz 2013 [%d])",
+              REF[["safronetz"]]))
   ) +
   theme_s7(legend = "top")
 

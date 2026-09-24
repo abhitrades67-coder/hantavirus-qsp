@@ -262,7 +262,79 @@ for (i in seq_len(nrow(prevention_table))) {
 }
 sink()
 
+# --- Figure: peak viral load by prophylaxis start day ------------------------
+# Cited as Supplementary Figure S5. No script in this repository previously
+# produced it, although it was included in the submitted supplement, so it could
+# neither be regenerated nor checked against the results table. It is built here
+# from the same `results` data frame that writes preexposure_results.csv, so the
+# figure and the table cannot disagree.
+suppressPackageStartupMessages({
+  library(ggplot2)
+})
+
+arm_colors <- c(
+  placebo     = "#757575",
+  ribavirin   = "#1f78b4",
+  favipiravir = "#E69F00",
+  combination = "#D55E00"
+)
+
+plot_dat <- results[!is.na(results$V_peak), ]
+plot_dat$arm <- factor(plot_dat$arm, levels = names(arm_colors))
+
+# Favipiravir and combination have IDENTICAL peak viral loads on days 0-4 --
+# favipiravir dominates the combination's antiviral effect until late -- so a
+# plain line plot hides one arm completely under the other. Distinct line types
+# keep both visible where they coincide.
+arm_ltypes <- c(placebo = "solid", ribavirin = "solid",
+                favipiravir = "solid", combination = "22")
+
+p_pep <- ggplot2::ggplot(plot_dat, ggplot2::aes(
+    x = pep_day, y = V_peak, colour = arm, group = arm)) +
+  ggplot2::geom_hline(yintercept = V_ESTABLISH_THRESHOLD, linetype = "dashed",
+                      colour = "grey30", linewidth = 0.6) +
+  ggplot2::annotate("text", x = 0, y = V_ESTABLISH_THRESHOLD * 1.7,
+                    label = "establishment threshold", hjust = 0, size = 3.4,
+                    colour = "grey30") +
+  ggplot2::geom_line(ggplot2::aes(linetype = arm), linewidth = 1.2) +
+  ggplot2::geom_point(ggplot2::aes(shape = arm), size = 2.8) +
+  ggplot2::scale_colour_manual(values = arm_colors, name = "Arm") +
+  ggplot2::scale_linetype_manual(values = arm_ltypes, name = "Arm") +
+  ggplot2::scale_shape_manual(values = c(placebo = 16, ribavirin = 16,
+                                         favipiravir = 16, combination = 17),
+                              name = "Arm") +
+  ggplot2::scale_x_continuous(breaks = pep_days) +
+  ggplot2::scale_y_log10() +
+  ggplot2::labs(
+    x = "Prophylaxis start day (days after exposure)",
+    y = expression("Peak viral load (copies " * ml^-1 * ")"),
+    title = "Post-exposure prophylaxis: peak viral load by start day",
+    subtitle = sprintf("%d of %d scenarios completed; symptom onset is model day 5",
+                       nrow(plot_dat), nrow(results))) +
+  ggplot2::theme_minimal(base_size = 13) +
+  ggplot2::theme(
+    panel.grid.minor = ggplot2::element_blank(),
+    panel.border     = ggplot2::element_rect(fill = NA, colour = "grey80"),
+    legend.position  = "bottom",
+    axis.title       = ggplot2::element_text(face = "bold"),
+    plot.title       = ggplot2::element_text(face = "bold", hjust = 0.5)
+  )
+
+dir.create("outputs", showWarnings = FALSE, recursive = TRUE)
+ggplot2::ggsave("outputs/preexposure_viral_peak.png", p_pep,
+                width = 8, height = 5.5, dpi = 300)
+
+n_missing <- sum(is.na(results$V_peak))
+if (n_missing > 0) {
+  warning(sprintf(
+    "%d of %d post-exposure scenarios did not complete; they are absent from the figure",
+    n_missing, nrow(results)))
+}
+
 cat("\n\nResults saved to:\n")
 cat("  outputs/preexposure_results.csv\n")
 cat("  outputs/preexposure_summary.txt\n")
+cat("  outputs/preexposure_viral_peak.png\n")
+cat(sprintf("\nScenarios completed: %d of %d\n",
+            sum(!is.na(results$V_peak)), nrow(results)))
 cat("\nDone.\n")

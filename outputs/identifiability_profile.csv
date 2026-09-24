@@ -1,0 +1,39 @@
+"parameter","label","multiplier","value","placebo_mortality","combo_RRR","consistent"
+"beta","Infection rate (beta)",0.5,5e-08,0,NA,FALSE
+"beta","Infection rate (beta)",0.6,6e-08,9.4515260599095,99.8823096364052,TRUE
+"beta","Infection rate (beta)",0.8,8e-08,9.56798604167054,98.3737393179932,TRUE
+"beta","Infection rate (beta)",1,1e-07,9.58369149781988,90.0307858003721,TRUE
+"beta","Infection rate (beta)",1.5,1.5e-07,9.58018507573232,54.0341310448851,TRUE
+"beta","Infection rate (beta)",2,2e-07,9.56586716257205,38.5345539862671,TRUE
+"beta","Infection rate (beta)",5,5e-07,9.50384759131004,23.2214936179464,TRUE
+"beta","Infection rate (beta)",10,1e-06,9.4665644599476,20.2837091343428,TRUE
+"beta","Infection rate (beta)",20,2e-06,9.44029914684517,18.9979097671792,TRUE
+"p","Viral production rate (p)",0.1,10,0,NA,FALSE
+"p","Viral production rate (p)",0.2,20,0,NA,FALSE
+"p","Viral production rate (p)",0.5,50,0,NA,FALSE
+"p","Viral production rate (p)",1,100,9.58369149781988,90.0307858003721,TRUE
+"p","Viral production rate (p)",2,200,11.3357085140489,30.9610247970347,TRUE
+"p","Viral production rate (p)",5,500,12.7673481961367,9.08574259328908,TRUE
+"p","Viral production rate (p)",10,1000,13.3488787507484,4.28570343057493,TRUE
+"c","Viral clearance rate (c)",0.25,0.75,12.4795315734861,35.5803067867845,TRUE
+"c","Viral clearance rate (c)",0.5,1.5,11.3289009920315,54.6024844253701,TRUE
+"c","Viral clearance rate (c)",1,3,9.58369149781988,90.0307858003721,TRUE
+"c","Viral clearance rate (c)",2,6,0,NA,FALSE
+"c","Viral clearance rate (c)",4,12,0,NA,FALSE
+"k_PV","Viral drive on permeability (k_PV)",0.25,0.125,5.0572432305686,94.9557103481384,TRUE
+"k_PV","Viral drive on permeability (k_PV)",0.5,0.25,7.35157353267295,93.2350757383084,TRUE
+"k_PV","Viral drive on permeability (k_PV)",1,0.5,9.58369149781988,90.0307858003721,TRUE
+"k_PV","Viral drive on permeability (k_PV)",2,1,11.3512916047863,84.3263267197432,TRUE
+"k_PV","Viral drive on permeability (k_PV)",4,2,12.5294532463393,74.9629787012745,TRUE
+"k_KP","Permeability drive on kidney (k_KP)",0.25,0.0375,5.70729010137431,92.8487634187896,TRUE
+"k_KP","Permeability drive on kidney (k_KP)",0.5,0.075,7.663838562701,92.2166240268072,TRUE
+"k_KP","Permeability drive on kidney (k_KP)",1,0.15,9.58369149781988,90.0307858003721,TRUE
+"k_KP","Permeability drive on kidney (k_KP)",2,0.3,11.1111653803374,85.5146782817077,TRUE
+"k_KP","Permeability drive on kidney (k_KP)",4,0.6,12.1313101063155,77.6578555038351,TRUE
+"V_ref","Permeability reference load (V_ref)",0.1,10000,13.3734614290524,56.4821482796585,TRUE
+"V_ref","Permeability reference load (V_ref)",0.2,20000,12.7976989555306,71.0536776721563,TRUE
+"V_ref","Permeability reference load (V_ref)",0.5,50000,11.3512916047863,84.3263267197432,TRUE
+"V_ref","Permeability reference load (V_ref)",1,1e+05,9.58369149781988,90.0307858003721,TRUE
+"V_ref","Permeability reference load (V_ref)",2,2e+05,7.35157353267295,93.2350757383084,TRUE
+"V_ref","Permeability reference load (V_ref)",5,5e+05,4.38307708767987,95.3105823867066,TRUE
+"V_ref","Permeability reference load (V_ref)",10,1e+06,2.64480442312503,96.0161704144267,FALSE

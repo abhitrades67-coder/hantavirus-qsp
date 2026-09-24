@@ -72,7 +72,7 @@ rtlnorm_bounded <- function(n, meanlog, sdlog, lower = -Inf, upper = Inf) {
 #'   - Endothelial sensitivity: LogNormal(0, 0.3)
 #'   - Adaptive immune strength: LogNormal(0, 0.3)
 #'   - Baseline PLT: Normal(250000, 50000), truncated [100000, 400000]
-#'   - Syndrome phenotype: 60% HFRS-like, 40% HCPS/HPS-like
+#'   - Syndrome phenotype: HFRS (this analysis is HFRS-only)
 #'
 #' @param N Number of virtual patients (default 1000)
 #' @param seed Random seed for reproducibility
@@ -97,7 +97,11 @@ generate_virtual_population <- function(N = 1000, seed = 42) {
                                      lower = 0.1, upper = 5),
     PLT0_baseline    = rtnorm_bounded(N, mean = 250000, sd = 50000,
                                    lower = 100000, upper = 400000),
-    syndrome         = ifelse(runif(N) < 0.6, "HFRS", "HCPS"),
+    # HFRS only. The lung-weighted HCPS mapping was never calibrated to its
+    # intended ~40% placebo mortality and is not reported, so it has been
+    # removed rather than shipped uncalibrated. This was the last draw in the
+    # frame, so removing its runif() leaves every other covariate unchanged.
+    syndrome         = rep("HFRS", N),
     stringsAsFactors = FALSE
   )
 

@@ -29,7 +29,7 @@ param_table <- read.csv("outputs/parameter_table.csv", stringsAsFactors = FALSE)
 # Every confidence class in the table must have an explicit treatment. Silently
 # matching only "high"/"medium"/"low" meant the three parameters rated "defined"
 # fell through and were NEVER perturbed, with no warning.
-KNOWN_CONFIDENCE <- c("high", "medium", "low", "defined")
+KNOWN_CONFIDENCE <- c("high", "medium", "low", "defined", "structural")
 unknown_rows <- !(param_table$confidence %in% KNOWN_CONFIDENCE)
 if (any(unknown_rows)) {
   stop(sprintf(
@@ -51,10 +51,17 @@ low_conf    <- param_table$parameter[param_table$confidence == "low"]
 # deliberately and visibly (below) instead of being dropped by accident.
 ablation_controls <- param_table$parameter[param_table$confidence == "defined"]
 
+# Confidence class "structural": numerical regularisation constants that have no
+# measured counterpart (currently n_mem_switch, the steepness of the smoothed
+# effector-to-memory decay transition). Perturbing them would vary the numerical
+# treatment of a threshold rather than a biological quantity, so they are
+# excluded deliberately and visibly, like the ablation controls.
+numerical_constants <- param_table$parameter[param_table$confidence == "structural"]
+
 # Exclude structural constants and the ablation-control switches from perturbation
 exclude <- c("I_0", "T_0", "I_ref", "F_I_ref", "F_II_ref", "C_ref", "V_ref",
              "eGFR_ref", "P_0", "C_pro_0", "K_0", "L_0", "PLT_0",
-             ablation_controls)
+             ablation_controls, numerical_constants)
 high_conf   <- setdiff(high_conf, exclude)
 medium_conf <- setdiff(medium_conf, exclude)
 low_conf    <- setdiff(low_conf, exclude)

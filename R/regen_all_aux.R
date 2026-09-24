@@ -12,7 +12,11 @@ scripts <- c(
   "R/preexposure_analysis.R",      # Figure 7 + preexposure_results.csv / summary (PEP)
   "R/ablation_analysis.R",         # Figures S3/S4 + ablation_summary.csv
   "R/sensitivity_analysis.R",      # tornado plots + sensitivity_summary.txt
-  "R/uncertainty_quantification.R" # Figure S2 + uncertainty_intervals.csv
+  "R/uncertainty_quantification.R", # Figure S2 + uncertainty_intervals.csv
+  # Population-level check behind the figure S4 robustness paragraph. This was
+  # driven by nothing until 2026-09-19 and its output had gone three months
+  # stale while the supplement quoted from it.
+  "R/adaptive_population_check.R"  # adaptive_population_check.csv
 )
 
 # These two use sink() and fail with "invalid connection" when sourced inside

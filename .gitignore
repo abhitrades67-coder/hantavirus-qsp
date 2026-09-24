@@ -19,9 +19,26 @@ dev/
 
 # --- Manuscript (paper is archived separately, not part of the code release) ---
 manuscript/
+# The scripts that build the manuscript's tables from outputs/ and check them
+# back against it ARE code, and the data accessibility statement says every
+# table is generated from archived code, so they are released. The manuscript
+# text itself stays out.
+!manuscript/
+manuscript/*
+!manuscript/Royal/
+manuscript/Royal/*
+!manuscript/Royal/_src/
+manuscript/Royal/_src/*
+!manuscript/Royal/_src/*.py
 *.docx
 # Publisher guide-for-authors PDFs kept locally for reference; not ours to redistribute
 *.pdf
+
+# --- Hidden tool and editor working directories, never released ---
+# Matched by shape rather than by name, so adding a new tool needs no new
+# rule and no tool name appears in this file.
+.*/
+!.github/
 
 # --- OS cruft ---
 .DS_Store
